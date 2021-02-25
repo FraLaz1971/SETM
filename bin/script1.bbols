@@ -1,0 +1,26 @@
+#!/bin/bash
+. lib/srn_tm_lib
+# $1 = infile $2 = packets offset
+get_dds_hd_pktlen(){
+    pn="$2"; if="$1"
+    Bs=$(( $pn + 8 )); Bl=4
+    echo "Bs = $Bs"
+    v=$(bbe -s -b "8:4" "$1" | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g")
+    echo $v
+    return 0
+}
+
+infile="$1"
+t="$2"
+po=0
+for i in $(eval echo {1..$t} )
+do
+    echo "iteration $i po = $po infile = $infile"
+    cpl=$(get_dds_hd_pktlen "$infile" $po)
+    echo "cpl = $cpl"
+    #cpl=$(bbe -s -b "8:4" "$1" | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g")
+    #dcpl=$( hextodec $cpl )
+    #hextodec $cpl
+    echo "current packet length = $dcpl"
+    po=$(($dcpl + $po)); echo "packet offset = $po"
+done

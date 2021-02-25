@@ -1,0 +1,100 @@
+2019-10-08T12:17:21.655607063|squirrel|main|INFO|extracts metadata from csv tables and saves it
+2019-10-08T12:17:21.662046051|squirrel|main|INFO|BNR = 0, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.668113952|squirrel|main|INFO|BNR = 1, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.674265108|squirrel|main|INFO|BNR = 2, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.680205542|squirrel|main|INFO|BNR = 3, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.686627729|squirrel|main|INFO|BNR = 4, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.693179125|squirrel|main|INFO|BNR = 5, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.699521051|squirrel|main|INFO|BNR = 6, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.705841090|squirrel|main|INFO|BNR = 7, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.711743447|squirrel|main|INFO|BNR = 8, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.717879510|squirrel|main|INFO|BNR = 9, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.724168134|squirrel|main|INFO|BNR = 10, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.730307383|squirrel|main|INFO|BNR = 11, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.736346776|squirrel|main|INFO|BNR = 12, ch1=# BNDR = 0->comments
+2019-10-08T12:17:21.742480445|squirrel|main|INFO|BNR = 13, ch1=# BNDR = 0->comments
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+cvsrow2xmlrec: N_FIELDS, 3 
+ - DONE -
+get_ncols: retrieving the number of columns in a csv table
+get_ncols: writing result on stdout
+cvsrow2xmlrec: converting csv row in xml record
+cvsrow2xmlrec: writing result on stdout
+ - DONE -
+2019-10-08T12:17:21.802575532|squirrel|main|INFO|data filename; data/20191008T121721/test_utils_input_01_20191008T121721_JiSYQ.csv
+2019-10-08T12:17:21.804640870|squirrel|main|INFO|conf filename; data/20191008T121721/test_utils_input_01_20191008T121721_KE4en.conf
+2019-10-08T12:17:21.807586410|squirrel|print_comments|INFO|REMARKS[0] = #lines starting with hash (#) are comments and are not part of the data table
+2019-10-08T12:17:21.809073402|squirrel|print_comments|INFO|REMARKS[1] = #they can be skipped, data are organised in records (=lines/rows) and fields (column items)
+2019-10-08T12:17:21.810486655|squirrel|print_comments|INFO|REMARKS[2] = #the following defaults will be respected
+2019-10-08T12:17:21.811955527|squirrel|print_comments|INFO|REMARKS[3] = #field separator=,(comma), record separator=LF
+2019-10-08T12:17:21.813372039|squirrel|print_comments|INFO|REMARKS[4] = #the last 4 rows contain metadata related to the table fields identifying each element of a column array
+2019-10-08T12:17:21.814807963|squirrel|print_comments|INFO|REMARKS[5] = #and they are: row(-4)=field_name, row(-3)=physical_unit,
+2019-10-08T12:17:21.816183952|squirrel|print_comments|INFO|REMARKS[6] = #row(-2)=data_type (int|float|string),row(-1)=data_size in BYTES
+2019-10-08T12:17:21.817654972|squirrel|print_comments|INFO|REMARKS[7] = #other 2 important metadata are retrieved directly from the file
+2019-10-08T12:17:21.819111248|squirrel|print_comments|INFO|REMARKS[8] = #nfields=n. of fields in a row -columns of the tables- and nrows=n of rows/records in the file
+2019-10-08T12:17:21.820525709|squirrel|print_comments|INFO|REMARKS[9] = #comments interleaving the data rows are simply neglected just as the comments before the rows -4,-1]
+2019-10-08T12:17:21.821994314|squirrel|print_comments|INFO|REMARKS[10] = #Time, temp1, temp2
+2019-10-08T12:17:21.823452999|squirrel|print_comments|INFO|REMARKS[11] = #s,degC,degC
+2019-10-08T12:17:21.825135304|squirrel|print_comments|INFO|REMARKS[12] = #int,int,int
+2019-10-08T12:17:21.826611154|squirrel|print_comments|INFO|REMARKS[13] = #4,2,2
+2019-10-08T12:17:21.828376436|squirrel|print_metadata|INFO|size of C_NAME = 3
+2019-10-08T12:17:21.829799709|squirrel|print_metadata|INFO|size of C_UNIT = 3
+2019-10-08T12:17:21.831185285|squirrel|print_metadata|INFO|size of C_TYPE = 3
+2019-10-08T12:17:21.832578001|squirrel|print_metadata|INFO|size of C_SIZE = 3
+2019-10-08T12:17:21.834613859|squirrel|print_metadata|INFO|S1 = 0
+2019-10-08T12:17:21.836051172|squirrel|print_metadata|INFO|N_FIELDS = 0
+2019-10-08T12:17:21.838162918|squirrel|print_metadata|INFO|writing C_NAME_0, Time
+2019-10-08T12:17:21.840078049|squirrel|print_data|INFO|file data/20191008T121721/test_utils_input_01_20191008T121721_JiSYQ.csv exists (doing nothing)
+2019-10-08T12:17:21.841911529|squirrel|print_data|INFO|RECORDS[0] = 3, 15, 32
+2019-10-08T12:17:21.843304676|squirrel|print_data|INFO|RECORDS[1] = 0, 10, 20
+2019-10-08T12:17:21.844812210|squirrel|print_data|INFO|RECORDS[2] = 2, 9, 14
+2019-10-08T12:17:21.846275839|squirrel|print_data|INFO|RECORDS[3] = 5, 12, 27
+2019-10-08T12:17:21.847700769|squirrel|print_data|INFO|RECORDS[4] = 7, 24, 25
+2019-10-08T12:17:21.849125938|squirrel|print_data|INFO|RECORDS[5] = 1, 12, 23
+2019-10-08T12:17:21.850526835|squirrel|print_data|INFO|RECORDS[6] = 
+2019-10-08T12:17:21.851939717|squirrel|csv_report|INFO|input file: indata/csv/test_utils_input_01.csv
+2019-10-08T12:17:21.853406673|squirrel|csv_report|INFO|output metadata file: data/20191008T121721/test_utils_input_01_20191008T121721_KE4en.conf
+2019-10-08T12:17:21.854798859|squirrel|csv_report|INFO|output data file: data/20191008T121721/test_utils_input_01_20191008T121721_JiSYQ.csv
+2019-10-08T12:17:21.856176050|squirrel|csv_report|INFO|tot n. of lines: 21
+2019-10-08T12:17:21.857532833|squirrel|csv_report|INFO|n. of remarks lines: 14
+2019-10-08T12:17:21.858944042|squirrel|csv_report|INFO|n. of data records: 7
+2019-10-08T12:17:21.860295358|squirrel|csv_report|INFO|last element index: 7
+2019-10-08T12:17:21.862144933|squirrel|csv_report|INFO|declare -a REMARKS='([0]="#lines starting with hash (#) are comments and are not part of the data table" [1]="#they can be skipped, data are organised in records (=lines/rows) and fields (column items)" [2]="#the following defaults will be respected" [3]="#field separator=,(comma), record separator=LF" [4]="#the last 4 rows contain metadata related to the table fields identifying each element of a column array" [5]="#and they are: row(-4)=field_name, row(-3)=physical_unit," [6]="#row(-2)=data_type (int|float|string),row(-1)=data_size in BYTES" [7]="#other 2 important metadata are retrieved directly from the file" [8]="#nfields=n. of fields in a row -columns of the tables- and nrows=n of rows/records in the file" [9]="#comments interleaving the data rows are simply neglected just as the comments before the rows -4,-1]" [10]="#Time, temp1, temp2" [11]="#s,degC,degC" [12]="#int,int,int" [13]="#4,2,2")'
+2019-10-08T12:17:21.863932891|squirrel|csv_report|INFO|declare -a RECORDS='([0]="3, 15, 32" [1]="0, 10, 20" [2]="2, 9, 14" [3]="5, 12, 27" [4]="7, 24, 25" [5]="1, 12, 23" [6]="")'
+2019-10-08T12:17:21.865711953|squirrel|csv_report|INFO|declare -a C_NAME='([0]="Time" [1]="temp1" [2]="temp2")'
+2019-10-08T12:17:21.867476267|squirrel|csv_report|INFO|declare -a C_UNIT='([0]="s" [1]="degC" [2]="degC")'
+2019-10-08T12:17:21.869270562|squirrel|csv_report|INFO|declare -a C_TYPE='([0]="int" [1]="int" [2]="int")'
+2019-10-08T12:17:21.871017021|squirrel|csv_report|INFO|declare -a C_SIZE='([0]="4" [1]="2" [2]="2")'

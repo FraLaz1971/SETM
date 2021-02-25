@@ -1,0 +1,22 @@
+#!/bin/bash
+## bin/ccsdstohex16Br 
+## gives the hex string from an input ccsds binary packets file formatted as 16 BYTES records delimited by /n (LF)
+. lib/utils_lib
+if [[ $# != 1 ]]
+then
+  debug "usage: $(basename $0) <infile.dds> (- for stdin)"
+  exit $E_BADARGS
+else
+  xxcmd=""
+  if [[ $1 != '-' ]] 
+  then 
+    infile="$1"
+    xxcmd="xxd -u $infile "
+  else
+    xxcmd="xxd -u "
+  fi
+    eval $xxcmd |
+    awk 'BEGIN{FS=":"}{print $2}' | 
+    awk '{print $1 $2 $3 $4 $5 $6 $7 $8}' | 
+    awk 'BEGIN{FS="."}{print $1}'
+fi

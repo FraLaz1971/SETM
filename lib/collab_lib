@@ -1,0 +1,49 @@
+#!/bin/bash
+# create a project directory structure
+create_project_dir(){
+	prjhome="$1"
+	mkdir -p "$prjhome"/src
+	mkdir -p "$prjhome"/src/script
+	mkdir -p "$prjhome"/src/script/sh
+	mkdir -p "$prjhome"/src/script/awk
+	mkdir -p "$prjhome"/src/script/python
+	mkdir -p "$prjhome"/src/c
+	mkdir -p "$prjhome"/src/cpp
+	mkdir -p "$prjhome"/src/cs
+	mkdir -p "$prjhome"/include
+	mkdir -p "$prjhome"/bin
+	mkdir -p "$prjhome"/lib
+	mkdir -p "$prjhome"/doc
+	mkdir -p "$prjhome"/doc/office
+	mkdir -p "$prjhome"/doc/latex
+	mkdir -p "$prjhome"/doc/html
+	mkdir -p "$prjhome"/3rdparty
+	mkdir -p "$prjhome"/data
+	mkdir -p "$prjhome"/data/ascii
+	mkdir -p "$prjhome"/data/fits
+	mkdir -p "$prjhome"/data/pds4
+	mkdir -p "$prjhome"/data/xml
+	mkdir -p "$prjhome"/data/images
+	mkdir -p "$prjhome"/data/images/png
+	mkdir -p "$prjhome"/data/images/jpg
+	mkdir -p "$prjhome"/data/images/tiff
+	touch "$prjhome"/.gitignore
+	touch "$prjhome"/README
+	luser=$USER; lmachine=$(uname)
+	echo "***************************************************************" > "$prjhome"/README
+	echo "*** project $(basename $prjhome) created by $luser @ $lmachine" >> "$prjhome"/README
+	echo "*** on $(date)" >> "$prjhome"/README
+	echo "***************************************************************" >> "$prjhome"/README
+	touch "$prjhome"/INSTALL
+	echo "***************************************************************" > "$prjhome"/INSTALL
+	echo "*** project $(basename $prjhome) created by $luser @ $lmachine " >> "$prjhome"/INSTALL
+	echo "*** on $(date)" >> "$prjhome"/INSTALL
+	echo "***************************************************************" >> "$prjhome"/INSTALL
+	echo "*** to compile: " >> "$prjhome"/INSTALL
+	echo "./configure " >> "$prjhome"/INSTALL
+	echo "make " >> "$prjhome"/INSTALL
+	echo "*** to install: " >> "$prjhome"/INSTALL
+	echo "make install" >> "$prjhome"/INSTALL
+	echo "***************************************************************" >> "$prjhome"/INSTALL
+	wget https://www.gnu.org/licenses/gpl-3.0.txt -O "$prjhome"/LICENSE
+}

@@ -1,0 +1,73 @@
+#!/bin/bash
+# library for reading and writing html5 files
+. lib/xml_lib
+
+putHTMLdeclaration(){
+  echo "<!DOCTYPE html>"
+}
+
+# openTag "html"
+
+# openTag "head"
+
+# closeTag "head"
+
+
+setTitle(){
+  if [[ $# != 1 ]]
+  then
+      debug "usage: ${FUNCNAME[1]} 'title' "
+      exit $E_BADARGS
+  else
+    openTag   "title"
+    echo "$1"
+    closeTag  "title"
+  fi
+}
+
+# openTag "body"
+
+openTableRaw(){
+  openTag "tr"
+}
+
+openTableHdCell(){ # table header cell
+  openTagn "th"
+}
+
+closeTableHdCell(){
+  closeTag "th"
+}
+
+openTableCell(){
+  openTag "td"
+}
+
+closeTableCell(){
+  closeTagn "td"
+}
+
+closeTableRaw(){
+  closeTag "tr"
+}
+
+html_comment(){
+  xml_comment "$@"
+}
+
+html_image(){
+  if [[ $# != 2 ]]
+  then
+      debug "usage: ${FUNCNAME[1]} <image_url> <alternative_text>"
+      exit $E_BADARGS
+  else
+    imgurl="$1"; imgalt="$2" 
+    openTagAttributes "img" "src" "$imgurl" "alt" "$imgalt"
+  fi
+}
+
+# put here html page content
+
+# closeTag "body"
+
+# closeTag "html"

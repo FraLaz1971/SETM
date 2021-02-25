@@ -1,0 +1,9 @@
+if [[ $BASH_SOURCE =~ '/' ]] 
+then 
+  dirpath="${BASH_SOURCE%/*}"
+  #  debug "'\$0' = $0"
+else 
+  dirpath='.'
+fi
+. $dirpath/srn_tm_lib
+. $dirpath/srn_utils

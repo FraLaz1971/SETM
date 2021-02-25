@@ -1,0 +1,123 @@
+#!/bin/bash
+#/** 
+#* @file dataset_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle experimental and flight telemetry dataset 
+#* it contains functions handling experiments data  
+#* more packets are handled in the file dataset_lib
+#*
+#**/
+#DATA is an array containing TM packets hex ascii string of a given dataset
+#matrix is a 2D (associative) array containing a numerical integer (dec) data table
+#extracted from the dataset in DATA
+#Associative arrays are created using declare -A name. 
+declare -a DATA
+declare -A matrix
+declare -i num_rows=-1; declare -i num_cols=-1
+declare -i maxrow=1; declare -i maxcol=1
+. lib/utils_lib
+
+declare -i mde=-1; #matrix default element
+
+set_default_element(){
+  mde="$1"
+}
+
+#create a default matrix with default
+set_matrix_size(){
+  ARG=2
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <nrows> <cols>"
+    return $E_BADARGS
+  else
+    num_rows="$1"
+    num_cols="$2"
+    for ((i=1;i<=$num_rows;i++)) do
+        for ((j=1;j<=$num_cols;j++)) do
+            matrix[$i,$j]=$mde
+        done
+    done
+  fi
+}
+
+
+set_random_matrix(){
+  ARG=2
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <nrows> <cols>"
+    return $E_BADARGS
+  else
+    num_rows="$1"
+    num_cols="$2"
+    for ((i=1;i<=$num_rows;i++)) do
+        for ((j=1;j<=$num_cols;j++)) do
+            matrix[$i,$j]=$RANDOM
+        done
+    done
+    maxrow=$i
+    maxcol=$j
+  fi
+}
+
+print_matrix(){
+  if [[ "$maxrow" -gt 1 ]];  then num_rows=$(($maxrow-1)); fi
+  f1="%$((${#num_rows}+1))s"
+  f2=" %9s"
+  printf "$f1" ''
+  for ((i=1;i<=$num_cols;i++)) do
+      printf "$f2" "c$i"
+  done
+  echo
+  for ((i=1;i<=$num_rows;i++)) do
+      printf "$f1" "r$i"
+      for ((j=1;j<=$num_cols;j++)) do
+          printf "$f2" ${matrix[$i,$j]}
+      done
+      echo
+  done
+}
+
+print_csv_table(){
+  if [[ "$maxrow" -gt 1 ]];  then num_rows=$(($maxrow-1)); fi
+  f1="%$((${#num_rows}+1))s"
+  f2=" %9s"
+     for ((i=1;i<=$num_rows;i++)) do # loop on the rows
+         for ((j=1;j<=$(($num_cols-1));j++)) do #loop on the column items
+             printf "$f2" "${matrix[$i,$j]},"
+         done
+             printf "$f2" "${matrix[$i,$j]}" #handles not printing the comma for the last element
+         echo
+     done
+}
+
+push_row(){
+  i=$maxrow;
+  for ((j=1;j<=$num_cols;j++)) do
+      eval matrix[$i,$j]=$1; shift
+  done  
+  ((maxrow++))
+}
+
+insert_row(){
+  ARG=$(($num_cols+1))
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <rowindex> <row_elem_1> ... <row_elem_n>"
+    return $E_BADARGS
+  else
+    i=$1;
+    for ((j=1;j<=$num_cols;j++)) do
+        eval matrix[$i,$j]=$2; shift
+    done  
+  fi
+}
+
+
+report_matrix(){
+  debug "matrix dimension $num_rows rows x $num_cols cols"
+  debug "next row index $maxrow"
+}
+

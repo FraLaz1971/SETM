@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--csv2xml.sh converts csv tables into xml tables-->
+<HK>
+<HKsample><Time>3</Time><Temp1> 15</Temp1><Temp2> 32</Temp2></HKsample> 
+
+<HKsample><Time>0</Time><Temp1> 10</Temp1><Temp2> 20</Temp2></HKsample> 
+
+<HKsample><Time>2</Time><Temp1> 9</Temp1><Temp2> 14</Temp2></HKsample> 
+
+<HKsample><Time>5</Time><Temp1> 12</Temp1><Temp2> 27</Temp2></HKsample> 
+
+<HKsample><Time>7</Time><Temp1> 24</Temp1><Temp2> 25</Temp2></HKsample> 
+
+<HKsample><Time>1</Time><Temp1> 12</Temp1><Temp2> 23</Temp2></HKsample> 
+
+</HK>

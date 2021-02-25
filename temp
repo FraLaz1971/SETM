@@ -1,0 +1,71 @@
+## CCSDS packet fields (bit arrays)
+
+# ccsds primary header (6 BYTES)
+unset hd
+# ccsds primary header fields
+## section version and identification
+unset hd_id_version_n
+unset hd_id_type
+unset hd_dfhflag
+unset hd_apid
+# additional sub fields definitions
+unset hd_apid_pid
+unset hd_apid_cat
+# section sequence control
+unset hd_seq
+## section control fields (2 BYTES)
+unset hd_seq_flag
+unset hd_seq_ssc
+## section packet length (2 BYTES)
+unset hd_pktlen
+## CCSDS tm data field header fields (for BC 10 BYTES = 80 bits)
+unset df  # data field bitarray containing all data (dfh + sdf) for BC TM dim is max 4106 BYTES
+# section data field header 
+unset dfh # bitarray contains all the bits in the dfh , for BC TM dimension is set fixed to 10 BYTES
+unset dfh_destination
+unset dfh_scet
+unset dfh_scet_coarse_B1
+unset dfh_scet_coarse_B2
+unset dfh_scet_coarse_B3
+unset dfh_scet_coarse_B4
+unset dfh_scet_fine_B1
+unset dfh_scet_fine_B2
+
+# section source data field
+
+unset sdf # source data field bit array contains all the bits in the data field (for BC TM max 4096 BYTES, for BC TC max 238 B)
+# subsection for TCs
+unset sdf_appdata # application data (variable, for BC TCs 236 BYTES max)
+unset sdf_errctrl # packet error control (always used for BC TC, for BC TCs 2 BYTES)
+
+unset pktlenval # contains the dec value of the hd_pktlen field 
+unset totbits   # contains the total number of bits of the current packet
+unset totbytes  # contains the total number of BYTES of the current packet
+
+
+
+---------
+
+0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0
+1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+----------
+0000111001001100110000000001010000010000000000110000110100000000000000000000000000000000000000000000000000000000
+
+0000111001001100110000000001010000010000000000110000110100000000000000000000000000000000000000000000000000000000
+
+000011100100110011000000000101000000000000001011000100000000001100001101000000000000000000000000000000000000000000000000000000000
+
+000011100100110011000000000101000000000000001011000100000000001100001101000000000000000000000000000000000000000000000000000000000
+
+0000001100001101000000000000000000000000000000000000000000000000000000001
+
+000011100100110011000000000101000000000000001011000100000000001100001101000000000000000000000000000000000000000000000000000000000
+
+
+000011100100110011000000000101000000000000000000000100001100000010110000000000000000000000000000000000000000000000000000000000001
+
+000011100100110011000000000101000000000000000000000100001100000010110000000000000000000000000000000000000000000000000000000000000
+
+0000000000000000000000001100000010110000

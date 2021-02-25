@@ -1,0 +1,138 @@
+#!/bin/bash
+# /*
+#  * @file errvals
+#  * @brief simple bash library, suitable for science research
+#  * containing sw tools to be used in the P/L experiments
+#  * onboard the ESA/JAXA BepiColombo space mission 
+#  * http://sci.esa.int/bepicolombo
+#  * @copyright (C) 2019 GPL 2 free software license 
+#  * @author Francesco Lazzarotto (INAF - OAPD) Francesco.lazzarotto@inaf.it
+#  * 
+#  * This program is free software; you can redistribute it and/or modify
+#  * it under the terms of the GNU General Public License as published by
+#  * the Free Software Foundation; either version 2 of the License, or
+#  * (at your option) any later version. (GPL-2.0-or-later)
+#  * 
+#  * This program is distributed in the hope that it will be useful,
+#  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  * GNU General Public License for more details.
+#  * 
+#  * You should have received a copy of the GNU General Public License along
+#  * with this program; if not, write to the Free Software Foundation, Inc.,
+#  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#  * 
+#  * library definition to be sourced from a main program/script
+#  */
+
+EX_OK=0	#/** successful termination *#/*
+EX_SYNERR=2	#/** syntax error *#/*
+
+EX__BASE=64	#/** base value for error messages *#/*
+
+EX_USAGE=64	#/** command line usage error *#/*
+EX_DATAERR=65	#/** data format error *#/*
+EX_NOINPUT=66	#/** cannot open input *#/*
+EX_NOUSER=67	#/** addressee unknown *#/*
+EX_NOHOST=68	#/** host name unknown *#/*
+EX_UNAVAILABLE=69	#/** service unavailable *#/*
+EX_SOFTWARE=70	#/** internal software error *#/*
+EX_OSERR=71	#/** system error (e.g., can't fork) *#/*
+EX_OSFILE=72	#/** critical OS file missing *#/*
+EX_CANTCREAT=73	#/** can't create (user) output file *#/*
+EX_IOERR=74	#/** input/output error *#/*
+EX_TEMPFAIL=75	#/** temp failure; user is invited to retry *#/*
+EX_PROTOCOL=76	#/** remote error in protocol *#/*
+EX_NOPERM=77	#/** permission denied *#/*
+EX_CONFIG=78	#/** configuration error *#/*
+EX__MAX=78	#/* maximum listed value */
+## mendel cooper abs guide example exit codes
+E_BADARGS=85          # Wrong number of arguments
+E_ARGSLIMITS=86       # an argument is out of allowed limits
+E_UNSUPPORTED=87      # unsupported system
+
+
+error_what(){
+  if [ "$#" -ne 1 ]
+  then
+    echo "usage ${FUNCNAME[0]} <error_code> [0-255]"
+    return $E_BADARGS
+  elif [[ "$1" -lt 0 ]] || [[ "$1" -gt 255 ]]
+  then
+    setdebuglevel "ERR"
+    debug "the value $1 you entered is out of the allowed range"
+    return $E_ARGSLIMITS
+  else
+    case "$1"
+    in
+    "$EX_OK")
+      echo "no errors: successful termination"
+    ;;
+    "$EX_SYNERR")
+      echo "syntax error"
+    ;;
+    "$EX_USAGE")	
+      echo "command line usage error"
+    ;;
+    "$EX_DATAERR")
+      echo "data format error"
+    ;;
+    "$EX_NOINPUT")
+      echo "cannot open input"
+    ;;
+    "$EX_NOUSER")
+      echo "addressee unknown"
+    ;;
+    "$EX_NOHOST")
+      echo "host name unknown"
+    ;;
+    "$EX_UNAVAILABLE")
+      echo "service unavailable"
+    ;;
+    $EX_SOFTWARE)	
+      echo "internal software error"
+    ;;
+    "$EX_OSERR")
+      echo "system error (e.g., can't fork)"
+    ;;
+    "$EX_OSFILE")
+      echo "critical OS file missing"
+    ;;
+    "$EX_CANTCREAT")	
+      echo "can't create (user) output file"
+    ;;
+    "$EX_IOERR")
+      echo "input/output error"
+    ;;
+    "$EX_TEMPFAIL")	
+      echo "temp. failure; user is invited to retry"
+    ;;
+    "$EX_PROTOCOL")	
+      echo "remote error in protocol"
+    ;;
+    "$EX_NOPERM")	
+      echo "permission denied"
+    ;;
+    "$EX_CONFIG")
+      echo "configuration error"
+    ;;
+    "$EX__MAX")
+      echo "maximum listed value"
+    ;;
+    ## mendel cooper abs guide example exit codes
+    $E_BADARGS)          
+      echo "Wrong number of arguments"
+    ;;
+    
+    "$E_ARGSLIMITS")
+      echo "an argument is out of allowed limits"
+    ;;
+    "$E_UNSUPPORTED")
+      echo "the system is unsupported"
+    ;;
+    *)
+      echo "unprecised error"
+    ;;
+    esac
+  fi
+}

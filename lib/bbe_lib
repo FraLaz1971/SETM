@@ -1,0 +1,49 @@
+#!/bin/bash
+. lib/utils_lib
+
+
+get_dds_hd_pktlen(){
+# returns the value of the packet_length field (4 octets) of dds header
+# it's the length in bytes of the following TM packet
+# Bs = Blockstart, the starting byte of the Block, inside the input file, to handle
+# Bl = Blocklength, the length in Bytes of the Block, inside the input file, to handle
+    v=0
+    pn="$2"; if="$1"
+    Bs=$(( $pn + 8 )); Bl=4
+    [[ "$DEBUG" == "1" ]] && debug "Bs = $Bs" 
+    [[ "$DEBUG" == "1" ]] && debug "v=(bbe -s -b $Bs:$Bl $if | xxd -u | awk  'BEGIN{FS=:} {print $2}' | awk  'BEGIN{FS=.} {print $1}' | sed -e s/ //g)"
+    v=$(bbe -s -b "$Bs:$Bl" $if | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g")
+    echo $v
+    return 0
+}
+
+# this function reads the length field in the dds packet header, containing the length in bytes of the following ccsds packet
+get_ccsds_pktlen(){
+  get_dds_hd_pktlen $@
+} 
+
+# returns the hexstr of a block inside the binary file
+get_block_hexstr(){
+  :
+}
+  
+#outputs dds header hex string on stdout
+get_dds_hd_hex(){
+  :
+  #echo $(bintohex $1)
+}
+
+#outputs packet ccsds [ HD + DFH + DF] hex string on stdout
+get_packet_hex(){
+  :
+}
+
+############## dds header start #################################
+# declare -a dds_hd_gentime   # Generation Time (8 octets)
+# declare -a dds_hd_pktlen    # Packet length (4 octets)
+# declare -a dds_hd_gndstid   # Ground station ID (2 octets)
+# declare -a dds_hd_vcid      # Virtual Channel ID (2 octets)
+# declare -a dds_hd_slesrvid  # SLE Service ID (1 octet)
+# declare -a dds_hd_tmqf      # Time Quality Flag (1 octet)
+############## dds header end #################################
+

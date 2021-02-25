@@ -1,0 +1,495 @@
+#!/bin/bash
+# include general utilities functions
+if [[ $BASH_SOURCE =~ '/' ]] 
+then 
+  dirpath="${BASH_SOURCE%/*}"
+  #  debug "'\$0' = $0"
+else 
+  dirpath='.'
+fi
+. $dirpath/srn_utils
+declare -a hd_id_version_n
+declare -a hd_id_type
+declare -a hd_dfhflag
+declare -a hd_apid_pid
+declare -a hd_apid_cat
+declare -a hd_apid
+declare -a hd_seq_segment_flag
+declare -a hd_sq_ssc
+declare -a hd_pkt_length
+declare -a dfh_spare1
+declare -a dfh_pusver
+declare -a dfh_service_type
+declare -a dfh_service_subtype
+declare -a dfh_destination
+declare -a dfh_scet
+declare -a dfh_scet_course_B1
+declare -a dfh_scet_course_B2
+declare -a dfh_scet_course_B3
+declare -a dfh_scet_course_B4
+declare -a dfh_scet_fine_B1
+declare -a dfh_scet_fine_B2
+declare -a df
+
+hd_id_version_n=(0 0 0)
+hd_id_type=(0)
+hd_dfhflag=(0)
+hd_apid_pid=(0 0 0 0 0 0 0)
+hd_apid_cat=(0 0 0)
+hd_apid=(${hd_apid_pid} ${hd_apid_cat})
+hd_seq_segment_flag=(0 0)
+hd_sq_ssc=(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+hd_pkt_length=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+dfh_spare1=(0)
+dfh_pusver=(0 0 0)
+dfh_spare2=(0 0 0 0)
+dfh_service_type=(0 0 0 0 0 0 0 0)
+dfh_service_subtype=(0 0 0 0 0 0 0 0)
+dfh_destination=(0 0 0 0 0 0 0 0)
+#spacecraft elapsed time
+dfh_scet_course_B1=(0 0 0 0 0 0 0 0)
+dfh_scet_course_B2=(0 0 0 0 0 0 0 0)
+dfh_scet_course_B3=(0 0 0 0 0 0 0 0)
+dfh_scet_course_B4=(0 0 0 0 0 0 0 0)
+dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+dfh_scet_fine_B2=(0 0 0 0 0 0 0 0)
+for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+
+check_pkt_fields(){
+  debug "hd_id_version_n dimension is ${#hd_id_version_n[*]}"
+  debug "hd_id_type dimension is ${#hd_id_type[*]}"
+  debug "hd_dfhflag dimension is ${#hd_dfhflag[*]}"
+  debug "hd_apid_pid dimension is ${#hd_apid_pid[*]}"
+  debug "hd_apid_cat dimension is ${#hd_apid_cat[*]}"
+  debug "hd_apid dimension is ${#hd_apid[*]}"
+  debug "hd_seq_segment_flag dimension is ${#hd_seq_segment_flag[*]}"
+  debug "hd_sq_ssc dimension is ${#hd_sq_ssc[*]}"
+  debug "hd_pkt_length dimension is ${#hd_pkt_length[*]}"
+  debug "dfh_spare1 dimension is ${#dfh_spare1[*]}"
+  debug "dfh_pusver dimension is ${#dfh_pusver[*]}"
+  debug "dfh_spare2 dimension is ${#dfh_spare2[*]}"
+  debug "dfh_service_type dimension is ${#dfh_service_type[*]}"
+  debug "dfh_service_subtype dimension is ${#dfh_service_subtype[*]}"
+  debug "dfh_destination dimension is ${#dfh_destination[*]}"
+  debug "dfh_scet dimension is ${#dfh_scet[*]}"
+}
+
+
+set_tm_packet(){
+  hd_id_version_n=(0 0 0) # if not set to 000 packets would be rejected as erroneus
+  hd_id_type=(0) # zero for all BC telemetry packets
+  hd_dfhflag=(1) # one if DFH is present Exceptions: spacecraft standard time packet and idle packet
+  hd_apid_pid=(binarytobitvect $(dectobin 100)) # setting 100 dec as default (SERENA --)
+  hd_apid_cat=(binarytobitvect $(dectobin 12)) # setting 12 dec as default (Science packet)
+  hd_apid=(${hd_apid_pid} ${hd_apid_cat})
+  hd_seq_segment_flag=(0 0)
+  hd_sq_ssc=(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+  hd_pkt_length=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+  dfh_spare1=(0)
+  dfh_pusver=(0 0 0)
+  dfh_spare2=(0 0 0 0)
+  dfh_service_type=(0 0 0 0 0 0 0 0)
+  dfh_service_subtype=(0 0 0 0 0 0 0 0)
+  dfh_destination=(0 0 0 0 0 0 0 0)
+  #spacecraft elapsed time
+  dfh_scet_course_B1=(0 0 0 0 0 0 0 0)
+  dfh_scet_course_B2=(0 0 0 0 0 0 0 0)
+  dfh_scet_course_B3=(0 0 0 0 0 0 0 0)
+  dfh_scet_course_B4=(0 0 0 0 0 0 0 0)
+  dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+  dfh_scet_fine_B2=(0 0 0 0 0 0 0 0)
+  for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+}
+
+set_std_time_pkt(){
+:
+}
+
+set_idle_packet(){
+:
+}
+
+print_packet(){
+  for((i=0; i<${#hd_id_version_n[*]}; i++)); do printf "%d" ${hd_id_version_n[$i]}; done
+  for((i=0; i<${#hd_id_type[*]}; i++)); do printf "%d" ${hd_id_type[$i]}; done
+  for((i=0; i<${#hd_dfhflag[*]}; i++)); do printf "%d" ${hd_dfhflag[$i]}; done
+  #for((i=0; i<${#hd_apid_pid[*]}; i++)); do printf "%d" ${hd_apid_pid[$i]}; done
+  #for((i=0; i<${#hd_apid_cat[*]}; i++)); do printf "%d" ${hd_apid_cat[$i]}; done
+  for((i=0; i<${#hd_apid[*]}; i++)); do printf "%d" ${hd_apid[$i]}; done
+  for((i=0; i<${#hd_seq_segment_flag[*]}; i++)); do printf "%d" ${hd_seq_segment_flag[$i]}; done
+  for((i=0; i<${#hd_sq_ssc[*]}; i++)); do printf "%d" ${hd_sq_ssc[$i]}; done
+  for((i=0; i<${#hd_pkt_length[*]}; i++)); do printf "%d" ${hd_pkt_length[$i]}; done
+  for((i=0; i<${#dfh_spare1[*]}; i++)); do printf "%d" ${dfh_spare1[$i]}; done
+  for((i=0; i<${#dfh_pusver[*]}; i++)); do printf "%d" ${dfh_pusver[$i]}; done
+  for((i=0; i<${#dfh_service_type[*]}; i++)); do printf "%d" ${dfh_service_type[$i]}; done
+  for((i=0; i<${#dfh_service_subtype[*]}; i++)); do printf "%d" ${dfh_service_subtype[$i]}; done
+  for((i=0; i<${#dfh_destination[*]}; i++)); do printf "%d" ${dfh_destination[$i]}; done
+  for((i=0; i<${#dfh_scet_course_B1[*]}; i++)); do printf "%d" ${dfh_scet_course_B1[$i]}; done
+  for((i=0; i<${#dfh_scet_course_B2[*]}; i++)); do printf "%d" ${dfh_scet_course_B2[$i]}; done
+  for((i=0; i<${#dfh_scet_course_B3[*]}; i++)); do printf "%d" ${dfh_scet_course_B3[$i]}; done
+  for((i=0; i<${#dfh_scet_course_B4[*]}; i++)); do printf "%d" ${dfh_scet_course_B4[$i]}; done
+  for((i=0; i<${#dfh_scet_fine_B1[*]}; i++)); do printf "%d" ${dfh_scet_fine_B1[$i]}; done
+  for((i=0; i<${#dfh_scet_fine_B2[*]}; i++)); do printf "%d" ${dfh_scet_fine_B2[$i]}; done
+#   #for((i=0; i<${#dfh_scet[*]}; i++)); do printf "%d" ${dfh_scet[$i]}; done
+#   for((i=0; i<${#df[*]}; i++)); do printf "%d" ${df[$i]}; done
+}
+
+dump_packet(){ # dumps the binary values of the packet on the stdout
+for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+}
+
+getAPID(){
+  ARG=2
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getAPID <PID> <CAT> (decimal integers)"
+    return $E_BADARGS
+  else
+    PID=$1
+    CAT=$2
+    binpid=$(bc -l <<< "obase=2; $1")
+    bincat=$(bc -l <<< "obase=2; $2")
+#    echo "PID = $binpid CAT = $bincat"; 
+    bpsh=$(($PID<<4))
+    binpsh=$(bc -l <<<"obase=2; $bpsh")
+    APID=$(( $bpsh + $CAT ))
+#    echo "adding $binpsh + $bincat"
+  fi
+  binapid=$(bc -l <<<"obase=2; $APID")
+  echo $APID
+#  echo "bin APID = "$binapid
+  return 0
+}
+# gets the ELENA 210304 time marker event seconds part1 given the hex value 
+getSecPart1(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSecPart1 <hexword>"
+    return $E_BADARGS
+  else 
+  #echo "bin input value" $(hextobin $1)
+    dhexword=$(hextodec $1)
+#  echo "first operand dec " $dsubfield
+#  echo "first operand bin " $(hextobin $1)
+#  echo "second operand bin " "0011111111111111"  
+#  echo "second operand hex " $( bintohex "0011111111111111" ) 
+#  echo "second operand dec " $( bintodec "0011111111111111" ) 
+    dmask=$( bintodec "0011111111111111" )
+    dsubfield=$(( $dhexword & $dmask ))
+#  bsubfield=$(dectobin $dsubfield)
+#  echo "extracted dec subfield " $dsubfield
+#  echo "extracted bin subfield " $bsubfield
+    ssubfield=$(($dsubfield << 2))
+#    echo "shifted subfield " $(dectobin $ssubfield)
+    printf "%016d\n" $(dectobin $ssubfield)
+  fi
+}
+getSecPart2(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSecPart2 <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "input hexword " $1
+    dhexword=$(hextodec $1)
+#   echo "first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+    dmask=$( bintodec "1100000000000000" )
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( ($dhexword & $dmask) >> 14))
+#   printf -v j "%16d" $dsubfield
+#   echo "dec result" $dsubfield
+#   echo "bin result " $(dectobin $dsubfield)
+#    echo "result " $(dectobin $dsubfield)
+#    printf "%016d\n" $(dectobin $dsubfield)
+
+#   echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+fi
+}
+
+getSubSecs(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSubSecs <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "input hexword " $1
+    dhexword=$(hextodec $1)
+#   echo "first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+#    dmask=$( bintodec "1100000000000000" )
+    dmask=$( bintodec "0011111111111110" )
+
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( ($dhexword & $dmask) << 2))
+#   printf -v j "%16d" $dsubfield
+#   echo "dec result" $dsubfield
+#   echo "bin result " $(dectobin $dsubfield)
+#    echo "result " $(dectobin $dsubfield)
+#    printf "%016d\n" $(dectobin $dsubfield)
+
+#    echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+
+  fi
+}
+
+getEvtFlag(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getEvtFlag <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "getEvtFlag() input hexword " $1
+    dhexword=$(hextodec $1)
+#    echo "getEvtFlag() first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+#    dmask=$( bintodec "1100000000000000" )
+     dmask=$( bintodec "0000000000000001" )
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( $dhexword & $dmask ))
+#   echo "getEvtFlag() dec result" $dsubfield
+
+#    echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+  fi
+}
+
+
+decodeTimeMarkevt(){
+  ARG=2
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeTimeMarkevt <hexword1> <hexword2>"
+    return $E_BADARGS
+  else 
+    unset p1 p2 ds
+    p1=$(getSecPart1 $1)
+    p2=$(getSecPart2 $2)
+#    printf "decodeTimeMarkevt() input word 1 (hex) %016d\n" $(hextobin $1)
+    #echo $p1
+#    printf "decodeTimeMarkevt() input word 2 (hex) %016d\n" $(hextobin $2)
+    #echo $p2
+    ds=$(( $(bintodec $p1) + $(bintodec $p2) ))
+#    printf "decodeTimeMarkevt() seconds (bin) %016d\n" $(dectobin $ds)
+#    printf "decodeTimeMarkevt() seconds (dec) %d\n" $ds
+    ss=$(getSubSecs $2)
+    #printf "time(s)\ttime (subs) \n"
+    printf "%d\t%d\n" $ds $ss
+  fi
+}
+
+getRealEvtMark(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getRealEvtMark <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "getRealEvtMark() input hexword " $1
+    dhexword=$(hextodec $1)
+#    echo "getRealEvtMark() first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+     dmask=$( bintodec "0000000000111111" )
+    dsubfield=$(( $dhexword & $dmask ))
+#   echo "getRealEvtMark() dec result" $dsubfield
+    printf "%016d\n" $(dectobin $dsubfield)
+  fi
+}
+
+getREHSCOld(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getREHSCOld <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask LSB MSB hsc
+
+      #echo "getREHSCOld() input word (hex) "$1
+      bw=$(hextobin $1)
+#      echo "getREHSC() input word (bin) "$bw
+      dw=$(hextodec $1)
+      # extract high speed counter LSB (25 ns step)
+      dmask=$(bintodec "1111111100000000")
+      LSB=$((($dw & dmask) >> 8))
+#      printf "getREHSC() LSB (bin) %016d\n" $(dectobin $LSB)
+#      printf "getREHSC() LSB (hex) %04X\n" $LSB
+      # extract high speed counter MSB (25 ns step)  
+      dmask=$(bintodec "0000000011111111")
+      MSB=$((($dw & dmask) << 8))
+#      printf "getREHSC() MSB (bin) %016d\n" $(dectobin $MSB)
+#      echo "getREHSC() MSB (hex)" $(dectohex $MSB)
+      hsc=$(($MSB + $LSB))
+      #printf "getREHSC() hsc (hex) %04X\n" $hsc
+#      printf "getREHSC() hsc (bin) %016d\n" $(dectobin $hsc)
+      printf "%d\n" $hsc
+  fi
+}
+
+getAddress(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getAddress <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask bw dw an
+
+      #echo "getAddress() input word (hex) " $1
+      bw=$(hextobin $1)
+      #printf "getAddress() input word (bin) %016d\n" $bw
+      dw=$(hextodec $1)
+      #printf "getAddress() input word (dec) %d\n" $dw
+      # extract anode address
+      dmask=$(bintodec "1111100000000000")
+      an=$((($dw & dmask) >> 11))
+      an=$((31 - $an))
+      #printf "getAddress() an (bin) %05d\n" $(dectobin $an)
+#      printf "getAddress() an (hex) %04X\n" $an
+      printf "%d\n" $an
+  fi
+}
+
+getMul(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getMul <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask bw dw ml
+      #echo "getMul() input word (hex) " $1
+      bw=$(hextobin $1)
+      #printf "getMul() input word (bin) %016d\n" $bw
+      dw=$(hextodec $1)
+      #printf "getMul() input word (dec) %d\n" $dw
+      # extract high speed counter LSB (25 ns step)
+      dmask=$(bintodec "0000011111000000")
+      ml=$((($dw & dmask) >> 6))
+      #printf "getMul() ml (bin) %016d\n" $(dectobin $ml)
+      #printf "getMul() ml (hex) %04X\n" $ml
+      printf "%d\n" $ml
+  fi
+}
+
+getREHSC(){
+  ARG=1
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getREHSC <hexword>"
+    return $E_BADARGS
+  else 
+    #echo "getREHSC() input word (hex) "$1
+    echo $(hextodec $1)
+  fi
+}
+
+
+decodeRealEvt(){
+  ARG=2
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeRealEvt <hexword1> <hexword2>"
+    return $E_BADARGS
+  else 
+    unset tmp mrk
+    #echo "decodeRealEvt() decoding ELENA real event made by words $1 $2"
+    # confirm that this is a real event
+    tmp=$(getRealEvtMark $2); mrk=${tmp:11}
+    if [[ "$mrk" -eq  "10101" ]]
+    then
+      #echo "decodeRealEvt() OK this a good data event!"
+#      echo "high speed counter " $(getREHSCOld $1)
+#      echo "high speed counter " $(getREHSC $1)
+#      getREHSCOld $1
+      #printf "time\taddress\tmul\n"
+      printf "%d\t%d\t%d\n" $(getREHSC $1) $(getAddress $2) $(getMul $2)
+#     extract       
+    else
+      echo "decodeRealEvt() warning! This is not a correct dat event"
+    fi
+  fi
+}
+
+getSecondWord(){
+  ARG=2
+  E_ERR_ARG=65
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeRealEvt <event part1(hex)> <eventpart2(hex)>"
+    return $E_BADARGS
+  else 
+    unset p2x p2d ef efd w2d w2x
+    p2x=$1
+    #echo "getSecondWord() event Part2 (hex)" $p2x
+    p2d=$(hextodec $1)
+    #echo "getSecondWord() event Part2 (dec)" $p2d
+    ef=$2
+    #echo "getSecondWord() event flag (hex)" $ef
+    efd=$(hextodec $2)
+    #echo "getSecondWord() event flag (dec)" $efd
+    w2d=$(( ($p2d << 1) + $efd ))
+    #echo "getSecondWord() tot second word (dec)" $w2d
+    #w2x=$(dectohex $w2d)
+    #echo "getSecondWord() tot second word (hex)" $w2x
+    printf "%04X\n" $w2d
+    
+#    printf "%04X\n" $(dectohex $(( ( ($(hextodec $1) << 1) + $(hextodec $2)) )))
+  fi
+}
+
+
+decodeELNevtX(){
+ARG=2
+E_ERR_ARG=65
+if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+then
+  echo "usage: decodeELNevt <hexword1> <hexword2>"
+  return $E_BADARGS
+else
+  evtflag=$(bintodec $(getEvtFlag $2))
+  case "$evtflag" in
+    0)
+      decodeTimeMarkevt $1 $2
+    ;;
+    1) 
+      decodeRealEvt $1 $2
+    ;;
+    *)
+        echo " illegal event tflag: $evtflag"
+	return $E_BADARGS;
+    ;;
+  esac
+
+fi
+}
+

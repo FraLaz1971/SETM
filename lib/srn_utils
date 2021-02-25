@@ -1,0 +1,759 @@
+#!/bin/bash
+# /*
+#  * @file srn_utils
+#  * @brief simple bash library, suitable for science research
+#  * containing sw tools to be used in the SERENA experiment
+#  * onboard the ESA/JAXA BepiColombo space mission 
+#  * http://sci.esa.int/bepicolombo
+#  * @copyright (C) 2019 GPL 2 free software license 
+#  * @author Francesco Lazzarotto (INAF - OAPD) Francesco.lazzarotto@inaf.it
+#  * 
+#  * This program is free software; you can redistribute it and/or modify
+#  * it under the terms of the GNU General Public License as published by
+#  * the Free Software Foundation; either version 2 of the License, or
+#  * (at your option) any later version. (GPL-2.0-or-later)
+#  * 
+#  * This program is distributed in the hope that it will be useful,
+#  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  * GNU General Public License for more details.
+#  * 
+#  * You should have received a copy of the GNU General Public License along
+#  * with this program; if not, write to the Free Software Foundation, Inc.,
+#  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#  * 
+#  * library definition to be sourced from a main program/script
+#  */
+
+#serena bash scripts general utilities
+
+DEBUG="TRUE"
+#unset DEBUG
+
+dirpath=lib
+. $dirpath/errvals
+DEBUGLEV="INFO"
+ds="|" # debug separator char
+prog="bash"
+hn=$(hostname)
+BCCMD="bc"
+debug(){
+  if [[ $# -ne 1 ]]
+  then
+    debug "usage: debug <string>"
+    return $E_BADARGS;
+  else
+    if test "${FUNCNAME[1]}"; then prog=${FUNCNAME[1]}; fi
+    cat <<< "$(date +'%FT%T.%N')$ds$hn$ds$prog$ds$DEBUGLEV$ds$1" 1>&2
+    if [ x"$DEBUGLEV" == x"ERR" ]; 
+    then 
+      setdebuglevel "INFO"
+      return 1;
+    fi
+      setdebuglevel "INFO"
+      return $EX_OK
+  fi
+}
+
+setdebuglevel(){
+  if [[ $# -ne 1 ]]
+  then
+    debug "usage: setdebuglevel <level> (INFO|WARN|ERR)"
+    return $E_BADARGS;
+  else
+    case "$1" in
+      "INFO" | "WARN" | "ERR" ) 
+      DEBUGLEV="$1"
+    ;;
+    *) 
+      setdebuglevel "ERR"
+      debug "illegal debug level entered"
+      return $E_ARGSLIMITS
+    ;;
+    esac
+    return $EX_OK
+  fi
+}
+
+log(){
+  debug
+}
+
+
+leftpadstring(){
+  if [[ "$#" -ne 3 ]] 
+  then
+      echo "usage: leftpadstring <string> <size> <padchar>"
+      return $E_BADARGS
+  else
+    instring="$1"
+    # check that size is a decimal integer
+    printcode="%0"$2"s"; pc=$(printf "%c" "$3")
+    #debug "executing printf \"$printcode\" $instring | sed -e 's/ /$pc/g'"
+    paddedstring=$(printf "$printcode" $instring | sed -e 's/ /'$pc'/g')
+    echo "$paddedstring"
+  fi
+}
+
+fillrandom(){ # fills the sectors histogram 32 elements vector with random values in the range [0-99] 
+  for ((a=0; a<32; a++))
+  do
+    hv[$a]=$(($RANDOM*100/32767))
+  done
+}
+
+# gives 0 if the input string is an integer, 1 if not
+is_int(){
+  if [[ "$#" -ne 1 ]] 
+  then
+      echo "usage: is_int <string>"
+      return $E_BADARGS
+  else
+      # returns 0 if input parameter is an integer value (decimal) 
+      if [[ "$1" =~ ^[0-9][0-9]*$ ]]
+      then
+	return 0
+      else
+	return 1
+      fi
+  fi
+}
+
+bitvectobyte(){ #for a given 8 bit vector return a decimal value in [0-255]
+  if [ "$#" -ne 8 ]
+  then
+    echo "usage ${FUNCNAME[0]} b0 b1 b2 b3 b4 b5 b6 b7 b8 (bits [0/1])"
+    return $E_BADARGS
+  else
+  for val in "$@" 
+  do 
+    if [[ "$val" == "1" ]] || [[ "$val" == "0" ]]
+    then
+      :
+      #debug "ok you entered one correct bit value $val"
+    else
+      setdebuglevel "ERR"
+      debug "you must enter only bits values [0/1]"
+      return $EX_DATAERR
+    fi
+  done
+  str="$@"
+  debug "calculating the value of the byte composed by $str"
+  cmpstr=${str// /}
+  #debug "cmpstr is $cmpstr"
+  bintodec $cmpstr
+  fi
+}
+
+bitvectoword(){ #for a given 16 bit vector return a decimal value in [0-65536]
+  if [ "$#" -ne 16 ]
+  then
+    echo "usage ${FUNCNAME[0]} b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 (bits [0/1])"
+    return $E_BADARGS
+  else
+  for val in "$@" 
+  do 
+    if [[ "$val" == "1" ]] || [[ "$val" == "0" ]]
+    then
+      :
+      #debug "ok you entered one correct bit value $val"
+    else
+      setdebuglevel "ERR"
+      debug "you must enter only bits values [0/1]"
+      return $EX_DATAERR
+    fi
+  done
+  str="$@"
+  debug "calculating the value of the byte composed by $str"
+  cmpstr=${str// /}
+  #debug "cmpstr is $cmpstr"
+  bintodec $cmpstr
+  fi
+}
+
+# take in input a bit vector and gives an hex string
+bitvectohex(){
+  dectohex $(bitvectodec $@)
+}
+
+wordtobin(){ #taking a value in the byte range [0-255] it puts on the stdout its binary value
+  if [ "$#" -ne 1 ]
+  then
+    echo "usage ${FUNCNAME[0]} <int.number> (decimal [0-65535])"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[+-]*[[:digit:]]*$ ]] 
+  then
+    setdebuglevel "ERR"
+    debug "you must enter a decimal number!"
+    return $EX_DATAERR
+  elif [[ "$1" -lt 0 ]] || [[ "$1" -gt 65535 ]]
+  then
+    setdebuglevel "ERR"
+    debug "the value $1 you entered is out of the allowed range"
+    return $E_ARGSLIMITS
+  else
+    debug "returning the binary value of $(($1))"
+    MSB=$(($1)) && $(bintodec 1111111100000000) #65280
+    LSB=$(($1)) && $(bintodec 11111111) #255
+    #xval1=$(dectohex "$(($1))")
+    debug "xval1 = $xval1"
+    debug "xval2 = $xval2"
+    bytetobin $val1;  bytetobin $val2;
+    return $EX_OK
+  fi
+}
+
+bytetobin(){ #taking a value in the byte range [0-255] it puts on the stdout its binary value
+  if [ "$#" -ne 1 ]
+  then
+    echo "usage ${FUNCNAME[0]} <int.number> (decimal [0-255])"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[+-]*[[:digit:]]*$ ]] 
+  then
+    setdebuglevel "ERR"
+    debug "you must enter a decimal number!"
+    return $EX_DATAERR
+  elif [[ "$1" -lt 0 ]] || [[ "$1" -gt 255 ]]
+  then
+    setdebuglevel "ERR"
+    debug "the value $1 you entered is out of the allowed range"
+    return $E_ARGSLIMITS
+  else
+    #debug "returning the binary value of $(($1))"
+    xval=$(dectohex "$(($1))")
+    echo -en "\x$xval" | xxd -u | xxd -r 
+    return $EX_OK
+  fi
+}
+
+wordtobin(){ #taking a value in the byte range [0-255] it puts on the stdout its binary value
+  if [ "$#" -ne 1 ]
+  then
+    echo "usage ${FUNCNAME[0]} <int.number> (decimal [0-65535])"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[+-]*[[:digit:]]*$ ]] 
+  then
+    setdebuglevel "ERR"
+    debug "you must enter a decimal number!"
+    return $EX_DATAERR
+  elif [[ "$1" -lt 0 ]] || [[ "$1" -gt 65535 ]]
+  then
+    setdebuglevel "ERR"
+    debug "the value $1 you entered is out of the allowed range"
+    return $E_ARGSLIMITS
+  else
+    MSB=0; LSB=0
+    #    debug "returning the binary value of $(($1))"
+    MSB=$((($1 & $(bintodec 1111111100000000) ) >> 8)) #65280
+    LSB=$(($1 & $(bintodec 11111111) )) #255
+    #    debug "MSB = $MSB"
+    #    debug "LSB = $LSB"
+    bytetobin $MSB;  bytetobin $LSB;
+    return $EX_OK
+  fi
+}
+
+compose_word(){
+  if [ "$#" -ne 2 ]
+  then
+    echo "usage: ${FUNCNAME[0]} <MSB> <LSB> (decimals [0-255])"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[+-]*[[:digit:]]*$ ]] || [[ ! "$2" =~ ^[+-]*[[:digit:]]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must enter decimal numbers!"
+    return $EX_DATAERR
+  elif [[ "$1" -lt 0 ]] || [[ "$1" -gt 255 ]] || [[ "$2" -lt 0 ]] || [[ "$2" -gt 255 ]]
+  then
+    setdebuglevel "ERR"
+    debug "one of the values $1 $2 you entered is out of the allowed range"
+    return $E_ARGSLIMITS
+  else
+    echo $(( ( $1 << 8) + $2 ))
+  fi
+}
+
+ binarytobitvect(){
+   if [ "$#" -ne 1 ]
+   then
+     echo "usage ${FUNCNAME[0]} <binary number> [0|1]*"
+     return $E_BADARGS
+   elif [[ ! "$1" =~ ^[0-1][0-1]*$ ]]
+   then
+     setdebuglevel "ERR"
+     debug "you must input a binary number [0/1]*"
+     return $EX_DATAERR
+   else
+     binval=$1
+     [[ $DEBUG = 1 ]] && debug "returning the bit vector of $1"
+     for ((i=0; i<$(( ${#binval} - 1 )); i++))
+     do 
+        echo -n "${binval:$i:1} " 
+     done
+     #    for ((i=0; i<${#paddedbitstring}; i+=8)) 
+     echo -n "${binval:$i:1}"
+     return $EX_OK
+   fi
+ }
+# given space separated elements of a bit vector
+bitvectobytes(){ # returns space separated bytes values in decimal [0-255]
+  if [ "$#" -lt 1 ]
+  then
+    echo "usage ${FUNCNAME[0]} b0 b1 ... b(n-1) (bits [0/1])"
+    return $E_BADARGS
+  else
+    for val in "$@" 
+    do 
+      if [[ "$val" == "1" ]] || [[ "$val" == "0" ]]
+      then
+	:
+	#debug "ok you entered one correct bit value $val"
+      else
+	setdebuglevel "ERR"
+	debug "you must enter only bits values [0/1]"
+	return $EX_DATAERR
+      fi
+    done
+    bitstring=$(printf "%s" "$@")
+    #debug "bitstring = $bitstring"
+    nbytes=$(( (${#bitstring} + 7)/8 ))
+    #debug "padding the bitstring with leading zeros"
+    paddedbitstring=$(leftpadstring "$bitstring" "$(($nbytes*8))" '0')
+    if [[ ! "$bitstring" =~ ^[0-1][0-1]*$ ]]; then setdebuglevel "ERR";debug "$bitstring is not a binary number!"; return $EX_DATAERR;fi
+    #debug "paddedbitstring = $paddedbitstring"
+    #debug "going to extract $nbytes bytes"
+    for ((i=0; i<${#paddedbitstring}; i+=8)) 
+    do 
+      #debug "converting byte ${paddedbitstring:i:8} to dec value"
+      lz=$(expr "${paddedbitstring:i:8}" : '\(^0*\)');wz="${paddedbitstring:i:8}"; nz=${wz#$lz}
+      #debug "stripped string $nz has size ${#nz}"
+      if ! [ "$nz" ]; then nz=0; fi
+      printf "%s " $(bintodec $nz)
+    done # extract bytes
+    echo
+   # printf "%d\n" $(bintodec ${bitstring:i:8})
+   # return $EX_OK
+  fi
+}
+
+remove_tempfile(){
+  echo "remove file $1 ? (y/n) [enter]"
+  read av
+  case "$av" in
+  "y" )
+    if test -f $1; then rm $1; fi
+    return "$?"
+  ;;
+  "n" )
+    debug "$1 has NOT been removed"
+    return "$?"
+  ;;
+  * )
+    echo "please type y or n"
+    remove_tempfile $1
+  esac
+}
+
+getRandom(){
+  if [[ $# != 1 ]]
+  then
+    debug "getRandom: gives a random number in the field [0-max)"
+    debug "usage: getRandom <max value>"
+    return $E_BADARGS;
+  else
+    is_int $1 || { setdebuglevel "ERR"; debug "input args $1 MUST be integer value"; }
+    echo $(($RANDOM*$1/32767))
+  fi
+}
+
+isalpha() { # return  1 if input is an alphabetic character 0 otherwise
+  if [[ "$#" -ne 1 ]]
+  then
+    echo "usage: $0 <char>"
+    return $E_BADARGS
+  elif [ ${#$1} -gt 1 ]
+  then
+    echo "only 1 char input allowed"
+    return $EX_DATAERR
+  else
+    if [[ "$1" =~ [[:alpha:]] ]] 
+    then
+        return 1
+    else
+	return 0
+    fi
+  fi
+}
+
+# print the decimal value ascii code of a printable character 
+chartoasciid(){
+   ARG=1
+   if [ "$#" != "$ARG" ]
+   then
+    echo "usage: ${FUNCNAME[0]} <char>"
+     return $E_BADARGS
+  elif [[ ! "$1" =~ ^.$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input one printable ascii character"
+    return $EX_DATAERR
+   else
+     #debug "executing a=\$(echo -n \"$1\" | hexbitvectobytes -e '1/1 \"%02X\n\"'); hextodec $a"
+     a=$(echo -n "$1" | hexbitvectobytes -e '1/1 "%02X\n"'); hextodec $a
+   fi
+}
+
+chartoasciix(){
+   ARG=1
+   if [ "$#" != "$ARG" ]
+   then
+    echo "usage: ${FUNCNAME[0]} <char>"
+     return $E_BADARGS
+    elif [[ ! "$1" =~ ^.$ ]]
+    then
+      setdebuglevel "ERR"
+      debug "you must input one printable ascii character"
+      return $EX_DATAERR
+    else
+     #debug "executing a=\$(echo -n \"$1\" | hexbitvectobytes -e '1/1 \"%02X\n\"'); hextodec $a"
+     a=$(echo -n "$1" | hexbitvectobytes -e '1/1 "%02X\n"'); echo $a
+    fi
+}
+
+chartoasciio(){
+   ARG=1
+   if [ "$#" != "$ARG" ]
+   then
+    echo "usage: ${FUNCNAME[0]} <char>"
+     return $E_BADARGS
+  elif [[ ! "$1" =~ ^.$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input one printable ascii character"
+    return $EX_DATAERR
+   else
+     #debug "executing a=\$(echo -n \"$1\" | hexbitvectobytes -e '1/1 \"%02X\n\"'); hextodec $a"
+     a=$(echo -n "$1" | hexbitvectobytes -e '1/1 "%02X\n"'); hextooct $a
+   fi
+}
+
+chartoascii(){
+  chartoasciid "$@"
+}
+
+dectobin(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: dectobin <decval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9][0-9]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a positive decimal number [0-9]*"
+    return $EX_DATAERR
+  else
+    # warn for leading zeros
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      debug "argument $1 has leading zeros $lz if you want to enter an octal number use octobin instead"
+    fi
+    $BCCMD <<<"obase=2;ibase=10; $1"
+    return 0
+  fi
+}
+
+dectobitvec(){
+  bintobitvec $( dectobin $@ )
+}
+
+bintodec(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: bintodec <binval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-1][0-1]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a binary number [0/1]*"
+    return $EX_DATAERR
+  else
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      debug "argument $1 has leading zeros $lz if you want to enter an octal number use octodec instead"
+    fi
+    $BCCMD <<<"obase=10;ibase=2; $1"
+  fi
+}
+
+bintooct(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <binval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-1][0-1]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a binary number [0/1]*"
+    return $EX_DATAERR
+  else
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      wz="$1"; nz=${wz#$lz}
+      debug "argument $1 has leading zeros $lz it will be intepreted as $nz"
+    fi
+    $BCCMD <<<"obase=8;ibase=2; $1"
+  fi
+}
+
+bintohex(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: bintohex <binval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-1][0-1]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a binary number [0/1]*"
+    return $EX_DATAERR
+  else
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      debug "argument $1 has leading zeros $lz if you want to enter an octal number use octohex instead"
+    fi
+    $BCCMD <<<"obase=16;ibase=2; $1"
+  fi
+}
+
+hextobin(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <hexval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9A-F][0-9A-F]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an hex number [0-9A-F]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=2;ibase=16; $1"
+  fi
+}
+
+octobin(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <octval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-7][0-7]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an oct number [0-7]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=2;ibase=8; $1"
+  fi
+}
+
+hextodec(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: hextodec <hexval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9A-F][0-9A-F]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an hex number [0-9A-F]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=10;ibase=16; $1"
+  fi
+}
+
+hextooct(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: hextodec <hexval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9A-F][0-9A-F]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an hex number [0-9A-F]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=8;ibase=16; $1"
+  fi
+}
+
+# gives a bit vector of the given hex string
+hextobitvec(){
+  bintobitvec $(hextobin $1)
+}
+octodec(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <octval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-7][0-7]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an oct number [0-7]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=10;ibase=8; $1"
+  fi
+}
+
+octohex(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <octval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-7][0-7]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input an oct number [0-7]*"
+    return $EX_DATAERR
+  else
+    $BCCMD <<<"obase=16;ibase=8; $1"
+  fi
+}
+
+dectohex(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: dectohex <decval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9][0-9]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a positive decimal number [0-9]*"
+    return $EX_DATAERR
+  else
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      debug "argument $1 has leading zeros $lz if you want to enter an octal number use octohex instead"
+    fi
+    $BCCMD <<<"obase=16;ibase=10; $1"
+  fi
+}
+
+dectooct(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <decval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9][0-9]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a positive decimal number [0-9]*"
+    return $EX_DATAERR
+  else
+    lz=$(expr "$1" : '\(^0*\)');
+    if [ "$lz" ] && [ "$lz" != "0" ]
+    then
+      setdebuglevel "WARN"
+      wz="$1"; nz=${wz#$lz}
+      debug "argument $1 has leading zeros $lz it will be intepreted as $nz"
+    fi
+    $BCCMD <<<"obase=8;ibase=10; $1"
+  fi
+}
+
+randombits(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <decval>"
+    return $E_BADARGS
+  elif [[ ! "$1" =~ ^[0-9][0-9]*$ ]]
+  then
+    setdebuglevel "ERR"
+    debug "you must input a positive decimal number [0-9]*"
+    debug "usage: ${FUNCNAME[0]} <decval>"
+    return $EX_DATAERR
+  else
+    if [ "$1" == "0" ]; then setdebuglevel "WARN";debug "arg = 0: returning no random bit output"; return $EX_OK;fi
+    if [ "$1" == "1" ]; then printf "%d" $(getRandom 2); return $EX_OK; fi
+    if [ "$1" == "2" ]; then printf "%d %d" $(getRandom 2) $(getRandom 2); return $EX_OK;fi
+    #debug "for c in $(eval echo {0..$(($1 - 2))}); do printf \"%d \" \$(getRandom 2); done; printf \"%d\" \$(getRandom 2)"
+    for c in $(eval echo {0..$(($1 - 2))}); do printf "%d " $(getRandom 2); done; printf "%d" $(getRandom 2)
+  fi
+}
+
+etime(){
+  CMDSTR=''
+  TIMECMD="$(which time) -f \"%e\""
+  #debug "time command is $TIMECMD"
+  CMDSTR=". $SRNTM_HOME/srn_tm_include; $@"
+  #debug "CMDSTR = $CMDSTR"
+  #debug "executing $TIMECMD bash -c '$CMDSTR'"
+  $TIMECMD bash -c "$CMDSTR" 2> .tmpfile.err
+  tail -1 .tmpfile.err | sed -e 's/"//g' | awk '{printf("%s %s %s\n", "elapsed time", $0, "s")}'
+  if test -a .tmpfile.err 
+  then
+  {
+       while read line
+       do
+	echo "$line" >&2
+      done
+  }<.tmpfile.err 
+    rm .tmpfile.err 
+  fi
+}
+
+bitstringtobitvec(){
+  bs="$1"
+  for ((i=0; i<${#bs}; i++)); do printf "%c " ${bs:$i:1}; done
+}
+
+bintobitvec(){
+  bitstringtobitvec $@
+}
+
+
+bitvectodec(){
+  bs=$(printf "%d" "$@")
+  echo $(bintodec $bs)
+}
+
+
+bitvectobin(){
+  printf "%d" "$@"
+}
+
+
+dump_hex_string(){
+  xs="$1";bv=($(hextobitvec "$1")); bs=$( bitvectobin ${bv[*]} )
+  debug "bitvector bv that has size ${#bv[*]}"
+  debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+  debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+  for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done
+
+}
+
+#create a binary file full of random data with size 1024 bytes
+#for ((k=0; k<1024; k++)); do bytetobin $(getRandom 255) >> randombytes; done;
+# map an array of printable char with respective dec hex and oct ascii code values
+#string=(c a r e  c a);(echo "char:dec:hex:oct";for c in ${string[*]}; do echo $c:$(chartoasciid $c):$(chartoasciix $c):$(chartoasciio $c); done) | awk 'BEGIN{FS=":";OFS='\t'}{for(a=1; a<=NF; a++) printf("%s\t",$a); printf("\n")}'

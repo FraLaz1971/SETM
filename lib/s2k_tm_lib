@@ -1,0 +1,246 @@
+#!/bin/bash
+#/** 
+#* @file s2k_tm_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle bepicolombo payload instrument flight telemetry data 
+#* @url http://sci.esa.int/bepicolombo
+#* library handling scos2000 header(s) data fields in the TM packets
+#*
+#**/
+##------------------------------------------------------------------------
+## SCOS2000 header
+##------------------------------------------------------------------------
+dirpath=lib
+. $dirpath/utils_lib   # include general utilities functions
+
+unset s2k # all s2k part of the packet,  (|s2k_com_hd|s2k_tm_hd|)
+unset s2k_ch # scos 2000 common header part of packet bitarray contains all the bits in the s2k_ch (60 BYTES)
+unset s2k_hd # scos 2000 telemetry header part of packet bitarray contains all the bits in the s2k_ch (60 BYTES)
+##------------------------------------------------------------------------
+## SCOS2000 packet common header fields 60 BYTES
+##------------------------------------------------------------------------
+unset s2k_ch_ctree   # C-tree
+unset s2k_ch_acfl    # Access Flag
+unset s2k_ch_spsf    # Spare+SimFlag
+unset s2k_ch_fts     # FT Secs
+unset s2k_ch_ftus    # FT Micro Secs
+unset s2k_ch_cts     # CT Secs
+unset s2k_ch_ctus    # CT Micro Secs
+unset s2k_ch_crid    # Create ID
+unset s2k_ch_scid    # Spacecraft ID
+unset s2k_ch_gsid    # Ground Station ID
+unset s2k_ch_size    # Size
+unset s2k_ch_tyve    # Type + Version
+unset s2k_ch_var1    # Var1
+unset s2k_ch_stid    # Stream ID
+unset s2k_ch_scnt    # Sequence counter
+unset s2k_ch_fkey    # Filing key
+unset s2k_ch_rk1     # Retr key 1
+unset s2k_ch_rk2     # Retr key 2
+unset s2k_ch_mid     # Mission ID
+unset s2k_ch_cxid    # Context ID
+unset s2k_ch_did     # Domain ID
+unset s2k_ch_dbre    # DB Release n.
+unset s2k_ch_dbis    # DB ISSUE n.
+unset s2k_ch_sp      # Spare
+
+s2k_ch_ctree=( $(zeros 16) ) # C-tree, 2 BYTES
+s2k_ch_acfl=(  $(zeros 8)  ) # Access Flag, 1 BYTE
+s2k_ch_spsf=(  $(zeros 8)  ) # Spare+SimFlag, 1 BYTE
+s2k_ch_fts=(   $(zeros 32) ) # FT Secs, 4 BYTES
+s2k_ch_ftus=(  $(zeros 32) ) # FT Micro Secs, 4 BYTES
+s2k_ch_cts=(   $(zeros 32) ) # CT Secs, 4 BYTES
+s2k_ch_ctus=(  $(zeros 32) ) # CT Micro Secs, 4 BYTES
+s2k_ch_crid=(  $(zeros 32) ) # Create ID, 4 BYTES
+s2k_ch_scid=(  $(zeros 16) ) # Spacecraft ID, 2 BYTES
+s2k_ch_gsid=(  $(zeros 16) ) # Ground Station ID, 2 BYTES
+s2k_ch_size=(  $(zeros 32) ) # Size, 4 BYTES
+s2k_ch_tyve=(  $(zeros 8)  ) # Type + Version, 1 BYTE
+s2k_ch_var1=(  $(zeros 8)  ) # Var1, 1 BYTE
+s2k_ch_stid=(  $(zeros 16)  ) # Stream ID, 2 BYTES
+s2k_ch_scnt=(  $(zeros 32) ) # Sequence counter, 4 BYTES
+s2k_ch_fkey=(  $(zeros 32) ) # Filing key, 4 BYTES
+s2k_ch_rk1=(   $(zeros 16) ) # Retr key 1, 2 BYTES
+s2k_ch_rk2=(   $(zeros 16) ) # Retr key 2, 2 BYTES
+s2k_ch_mid=(   $(zeros 16) ) # Mission ID, 2 BYTES
+s2k_ch_cxid=(  $(zeros 16) ) # Context ID, 2 BYTES
+s2k_ch_did=(   $(zeros 16) ) # Domain ID, 2 BYTES
+s2k_ch_dbre=(  $(zeros 16) ) # DB Release n., 2 BYTES
+s2k_ch_dbis=(  $(zeros 16) ) # DB ISSUE n., 2 BYTES
+s2k_ch_sp=(   $(zeros 16) )  # Spare, 2 BYTES
+# s2k_ch scos2000 common header total
+set_s2k_ch(){
+  s2k_ch=( ${s2k_ch_ctree[*]} ${s2k_ch_acfl[*]} ${s2k_ch_spsf[*]} ${s2k_ch_fts[*]} \
+  ${s2k_ch_ftus[*]} ${s2k_ch_cts[*]} ${s2k_ch_ctus[*]} ${s2k_ch_crid[*]} ${s2k_ch_scid[*]} \
+  ${s2k_ch_gsid[*]} ${s2k_ch_size[*]} ${s2k_ch_tyve[*]} ${s2k_ch_var1[*]} ${s2k_ch_stid[*]} \
+  ${s2k_ch_scnt[*]} ${s2k_ch_fkey[*]} ${s2k_ch_rk1[*]} ${s2k_ch_rk2[*]} ${s2k_ch_mid[*]} \
+  ${s2k_ch_cxid[*]} ${s2k_ch_did[*]} ${s2k_ch_dbre[*]} ${s2k_ch_dbis[*]} ${s2k_ch_sp[*]} )
+}
+#
+#--------------------------------------------------------------
+#SCOS-2000 TM Header (16 bytes) fields initialisation
+#--------------------------------------------------------------
+unset s2k_hd_val     # Validity, 4 BYTES
+unset s2k_hd_tpsd    # TPSD, 4 BYTES
+unset s2k_hd_rid     # Route ID, 2 BYTES
+unset s2k_hd_apid    # PUS APID, 2 BYTES
+unset s2k_hd_ssc     # PUS SSC, 2 BYTES
+unset s2k_hd_type    # PUS Service Type, 1 BYTE
+unset s2k_hd_subtype # PUS Service Sub-type, 1 BYTE
+
+s2k_hd_val=( $(zeros 32)    ) # Validity, 4 BYTES
+s2k_hd_tpsd=( $(zeros 32)   ) # TPSD, 4 BYTES
+s2k_hd_rid=( $(zeros 16)    ) # Route ID, 2 BYTES
+s2k_hd_apid=( $(zeros 16)   ) # PUS APID, 2 BYTES
+s2k_hd_ssc=( $(zeros 16)    ) # PUS SSC, 2 BYTES
+s2k_hd_type=( $(zeros 8)    ) # PUS Service Type, 1 BYTE
+s2k_hd_subtype=( $(zeros 8) ) # PUS Service Sub-type, 1 BYTE
+
+# s2k_tm scos2000 telemetry header total (16 bytes)
+set_s2k_hd(){
+  s2k_hd=( ${s2k_hd_val[*]} ${s2k_hd_tpsd[*]} ${s2k_hd_rid[*]} ${s2k_hd_apid[*]} \
+  ${s2k_hd_ssc[*]} ${s2k_hd_type[*]} ${s2k_hd_subtype[*]} )
+}
+
+# s2k header total 
+set_s2k(){
+  set_s2k_ch
+  set_s2k_hd
+  s2k=( ${s2k_ch[*]} ${s2k_hd[*]} )
+}
+
+print_s2k_hd(){ #prints the scos2000 tot. header bit array (72 bits)
+      for((i=0; i<${#s2k_hd[*]}; i++)); do printf "%d" ${s2k_hd[$i]}; done
+}
+
+print_s2k_tothd(){ #prints the scos2000 tot. header bit array (72 bits)
+      for((i=0; i<${#s2k[*]}; i++)); do printf "%d" ${s2k[$i]}; done
+}
+
+get_s2k_tothd_hex(){ #gets on stdout the scos2000 tot. header bit array (76 bytes)
+  leftpadstring $(bintohex $(print_s2k_tothd 2>/dev/null) 2>/dev/null) 152 0
+}
+
+get_s2k_hd_hex(){ #gets on stdout the scos2000 tot. header bit array (16 bytes)
+  leftpadstring $(bintohex $(print_s2k_hd 2>/dev/null) 2>/dev/null) 8 0
+}
+
+
+get_s2k_thd_length(){ #returns the length of the total s2k header (s2k_common_header+s2k_header)
+  echo 72
+}
+
+#Validity
+set_s2k_hd_val(){     # Validity, 4 BYTES
+  :
+}
+
+set_s2k_hd_val_hex(){     # Validity, 4 BYTES
+  :
+}
+
+get_s2k_hd_val(){     # Validity, 4 BYTES
+  :
+}
+get_s2k_hd_val_hex(){     # Validity, 4 BYTES
+  :
+}
+
+#TPSD
+set_s2k_hd_tpsd(){    # TPSD, 4 BYTES
+  :
+}
+
+set_s2k_hd_tpsd_hex(){    # TPSD, 4 BYTES
+  :
+}
+
+get_s2k_hd_tpsd(){    # TPSD, 4 BYTES
+  :
+}
+
+get_s2k_hd_tpsd_hex(){    # TPSD, 4 BYTES
+  :
+}
+#Route ID
+set_s2k_hd_rid(){     # Route ID, 2 BYTES
+  :
+}
+
+set_s2k_hd_rid_hex(){     # Route ID, 2 BYTES
+  :
+}
+
+get_s2k_hd_rid(){     # Route ID, 2 BYTES
+  :
+}
+
+get_s2k_hd_rid_hex(){     # Route ID, 2 BYTES
+  :
+}
+#PUS APID
+set_s2k_hd_apid(){    # PUS APID, 2 BYTES
+  s2k_hd_apid=( "$@"  )
+  set_s2k
+}
+
+set_s2k_hd_apid_hex(){    # PUS APID, 2 BYTES
+  s2k_hd_apid=( $(binarytobitvect $( hextobin "$1") ) )
+  set_s2k
+}
+
+get_s2k_hd_apid(){    # PUS APID, 2 BYTES
+  :
+}
+get_s2k_hd_apid(){    # PUS APID, 2 BYTES
+  :
+}
+
+#PUS SSC
+set_s2k_hd_ssc(){     # PUS SSC, 2 BYTES
+  s2k_hd_ssc=( "$@"  )
+  set_s2k
+}
+
+set_s2k_hd_ssc_hex(){     # PUS SSC, 2 BYTES
+  s2k_hd_ssc=( $(binarytobitvect $( hextobin "$1") ) )
+  set_s2k
+}
+
+get_s2k_hd_ssc(){     # PUS SSC, 2 BYTES
+  :
+}
+
+get_s2k_hd_ssc(){     # PUS SSC, 2 BYTES
+  :
+}
+
+#PUS Service Type
+s2k_hd_type(){    # PUS Service Type, 1 BYTE
+  :
+}
+s2k_hd_type(){    # PUS Service Type, 1 BYTE
+  :
+}
+s2k_hd_type(){    # PUS Service Type, 1 BYTE
+  :
+}
+s2k_hd_type(){    # PUS Service Type, 1 BYTE
+  :
+}
+
+#PUS Service Sub-Type
+s2k_hd_subtype(){ # PUS Service Sub-type, 1 BYTE
+  :
+}
+
+s2k_hd_subtype(){ # PUS Service Sub-type, 1 BYTE
+  :
+}
+s2k_hd_subtype(){ # PUS Service Sub-type, 1 BYTE
+  :
+}
+s2k_hd_subtype(){ # PUS Service Sub-type, 1 BYTE
+  :
+}

@@ -1,0 +1,11 @@
+#!/bin/bash
+# bin/ccsdstohex, gives the hex string from an input ccsds binary packets file
+. lib/utils_lib
+if [[ $# != 1 ]]
+then
+  debug "usage: $(basename $0) <infile.dds>"
+  exit $E_BADARGS
+else
+  infile="$1"
+  echo $(bin/ccsdstohex16Br $infile) | sed -e 's/ //g'
+fi

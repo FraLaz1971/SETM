@@ -1,0 +1,36 @@
+!#!/bin/bash
+
+debug(){
+	echo "${FUNCNAME[1]}: " $* >/dev/stderr
+}
+
+recalled(){
+	debug "called by called"
+}
+
+called(){
+	debug "this function is ${FUNCNAME[0]}"
+	debug "has been called by ${FUNCNAME[1]}"
+}
+caller(){
+	debug "this function is ${FUNCNAME[0]}"
+	debug "has been called by ${FUNCNAME[1]}"
+	debug "calling called"
+	called
+	debug "now again in caller"
+}
+echo "going to call caller"
+debug "calling caller"
+caller
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,96 @@
+2019-08-20T09:45:20.051772629|squirrel|binarytobitvect|INFO|returning the bit vector of 1100100
+2019-08-20T09:45:20.064344899|squirrel|binarytobitvect|INFO|returning the bit vector of 1100
+2019-08-20T09:45:20.073079488|squirrel|set_default_dds_packet|INFO|setting APID to 1612
+2019-08-20T09:45:20.079942449|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000000000
+2019-08-20T09:45:20.082057640|squirrel|set_default_dds_packet|INFO|executing  'binarytobitvect leftpadstring dectobin 0 14 '0'))' =  0 0 0 0 0 0 0 0 0 0 0 0 0 0
+2019-08-20T09:45:20.083525544|squirrel|set_default_dds_packet|INFO|setting SSC to 0
+2019-08-20T09:45:20.095427067|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000000000
+2019-08-20T09:45:20.127064991|squirrel|check_dds_pkt_fields|INFO|dds_hd_gentime dimension is 64
+2019-08-20T09:45:20.128645403|squirrel|check_dds_pkt_fields|INFO|dds_hd_pktlen dimension is 32
+2019-08-20T09:45:20.130315007|squirrel|check_dds_pkt_fields|INFO|dds_hd_gndstid dimension is 16
+2019-08-20T09:45:20.131996403|squirrel|check_dds_pkt_fields|INFO|dds_hd_vcid dimension is 16
+2019-08-20T09:45:20.133509616|squirrel|check_dds_pkt_fields|INFO|dds_hd_slesrvid dimension is 8
+2019-08-20T09:45:20.135731901|squirrel|check_dds_pkt_fields|INFO|dds_hd_tmqf dimension is 8
+2019-08-20T09:45:20.139822887|squirrel|check_dds_pkt_fields|INFO|hd_id_version_n dimension is 3
+2019-08-20T09:45:20.141631440|squirrel|check_dds_pkt_fields|INFO|hd_id_type dimension is 1
+2019-08-20T09:45:20.143323636|squirrel|check_dds_pkt_fields|INFO|hd_dfhflag dimension is 1 value is 1
+2019-08-20T09:45:20.145056850|squirrel|check_dds_pkt_fields|INFO|hd_apid_pid dimension is 7
+2019-08-20T09:45:20.147867890|squirrel|check_dds_pkt_fields|INFO|hd_apid_cat dimension is 4
+2019-08-20T09:45:20.154045188|squirrel|check_dds_pkt_fields|INFO|hd_apid dimension is 11 dec value is 1612
+2019-08-20T09:45:20.155605096|squirrel|check_dds_pkt_fields|INFO|hd_seq_flag dimension is 2
+2019-08-20T09:45:20.163952675|squirrel|bintodec|WARN|argument 00000000000000 has leading zeros 00000000000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.166848306|squirrel|check_dds_pkt_fields|INFO|hd_seq_ssc dimension is 14 dec value is 0
+2019-08-20T09:45:20.170572761|squirrel|bintodec|WARN|argument 0000000000001011 has leading zeros 000000000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.175635702|squirrel|check_dds_pkt_fields|INFO|hd_pktlen dimension is 16 value is 11
+2019-08-20T09:45:20.179701426|squirrel|check_dds_pkt_fields|INFO|dfh_spare1 dimension is 1
+2019-08-20T09:45:20.181363505|squirrel|check_dds_pkt_fields|INFO|dfh_pusver dimension is 3
+2019-08-20T09:45:20.182952988|squirrel|check_dds_pkt_fields|INFO|dfh_spare2 dimension is 4
+2019-08-20T09:45:20.187957006|squirrel|check_dds_pkt_fields|INFO|dfh_service_type dimension is 8
+2019-08-20T09:45:20.189697449|squirrel|check_dds_pkt_fields|INFO|dfh_service_subtype dimension is 8
+2019-08-20T09:45:20.191767251|squirrel|check_dds_pkt_fields|INFO|dfh_destination dimension is 8
+2019-08-20T09:45:20.194211204|squirrel|check_dds_pkt_fields|INFO|dfh_scet dimension is 48
+2019-08-20T09:45:20.196298171|squirrel|check_dds_pkt_fields|INFO|tot number of bits of the packet is 272
+2019-08-20T09:45:20.206170478|squirrel|binarytobitvect|INFO|returning the bit vector of 1100100
+2019-08-20T09:45:20.217431211|squirrel|binarytobitvect|INFO|returning the bit vector of 1100
+2019-08-20T09:45:20.225991259|squirrel|set_default_dds_packet|INFO|setting APID to 1612
+2019-08-20T09:45:20.234503356|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000010100
+2019-08-20T09:45:20.236964180|squirrel|set_default_dds_packet|INFO|executing  'binarytobitvect leftpadstring dectobin 20 14 '0'))' =  0 0 0 0 0 0 0 0 0 1 0 1 0 0
+2019-08-20T09:45:20.238550685|squirrel|set_default_dds_packet|INFO|setting SSC to 20
+2019-08-20T09:45:20.246390321|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000010100
+2019-08-20T09:45:20.267798832|squirrel|check_dds_pkt_fields|INFO|dds_hd_gentime dimension is 64
+2019-08-20T09:45:20.271324596|squirrel|check_dds_pkt_fields|INFO|dds_hd_pktlen dimension is 32
+2019-08-20T09:45:20.277010989|squirrel|check_dds_pkt_fields|INFO|dds_hd_gndstid dimension is 16
+2019-08-20T09:45:20.279643368|squirrel|check_dds_pkt_fields|INFO|dds_hd_vcid dimension is 16
+2019-08-20T09:45:20.281693878|squirrel|check_dds_pkt_fields|INFO|dds_hd_slesrvid dimension is 8
+2019-08-20T09:45:20.284908953|squirrel|check_dds_pkt_fields|INFO|dds_hd_tmqf dimension is 8
+2019-08-20T09:45:20.286795757|squirrel|check_dds_pkt_fields|INFO|hd_id_version_n dimension is 3
+2019-08-20T09:45:20.289075601|squirrel|check_dds_pkt_fields|INFO|hd_id_type dimension is 1
+2019-08-20T09:45:20.290572594|squirrel|check_dds_pkt_fields|INFO|hd_dfhflag dimension is 1 value is 1
+2019-08-20T09:45:20.292017598|squirrel|check_dds_pkt_fields|INFO|hd_apid_pid dimension is 7
+2019-08-20T09:45:20.293392024|squirrel|check_dds_pkt_fields|INFO|hd_apid_cat dimension is 4
+2019-08-20T09:45:20.297528562|squirrel|check_dds_pkt_fields|INFO|hd_apid dimension is 11 dec value is 1612
+2019-08-20T09:45:20.298922232|squirrel|check_dds_pkt_fields|INFO|hd_seq_flag dimension is 2
+2019-08-20T09:45:20.302260703|squirrel|bintodec|WARN|argument 00000000010100 has leading zeros 000000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.304995336|squirrel|check_dds_pkt_fields|INFO|hd_seq_ssc dimension is 14 dec value is 20
+2019-08-20T09:45:20.308391732|squirrel|bintodec|WARN|argument 0000000000001011 has leading zeros 000000000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.311019669|squirrel|check_dds_pkt_fields|INFO|hd_pktlen dimension is 16 value is 11
+2019-08-20T09:45:20.312466217|squirrel|check_dds_pkt_fields|INFO|dfh_spare1 dimension is 1
+2019-08-20T09:45:20.313897768|squirrel|check_dds_pkt_fields|INFO|dfh_pusver dimension is 3
+2019-08-20T09:45:20.315342841|squirrel|check_dds_pkt_fields|INFO|dfh_spare2 dimension is 4
+2019-08-20T09:45:20.316709763|squirrel|check_dds_pkt_fields|INFO|dfh_service_type dimension is 8
+2019-08-20T09:45:20.319631943|squirrel|check_dds_pkt_fields|INFO|dfh_service_subtype dimension is 8
+2019-08-20T09:45:20.321168140|squirrel|check_dds_pkt_fields|INFO|dfh_destination dimension is 8
+2019-08-20T09:45:20.322605568|squirrel|check_dds_pkt_fields|INFO|dfh_scet dimension is 48
+2019-08-20T09:45:20.324029457|squirrel|check_dds_pkt_fields|INFO|tot number of bits of the packet is 272
+2019-08-20T09:45:20.330111536|squirrel|binarytobitvect|INFO|returning the bit vector of 1100100
+2019-08-20T09:45:20.336594703|squirrel|binarytobitvect|INFO|returning the bit vector of 1100
+2019-08-20T09:45:20.343252275|squirrel|set_default_dds_packet|INFO|setting APID to 1612
+2019-08-20T09:45:20.350102319|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000101000
+2019-08-20T09:45:20.352197596|squirrel|set_default_dds_packet|INFO|executing  'binarytobitvect leftpadstring dectobin 40 14 '0'))' =  0 0 0 0 0 0 0 0 1 0 1 0 0 0
+2019-08-20T09:45:20.353547841|squirrel|set_default_dds_packet|INFO|setting SSC to 40
+2019-08-20T09:45:20.359817047|squirrel|binarytobitvect|INFO|returning the bit vector of 00000000101000
+2019-08-20T09:45:20.377523086|squirrel|check_dds_pkt_fields|INFO|dds_hd_gentime dimension is 64
+2019-08-20T09:45:20.378963879|squirrel|check_dds_pkt_fields|INFO|dds_hd_pktlen dimension is 32
+2019-08-20T09:45:20.380473108|squirrel|check_dds_pkt_fields|INFO|dds_hd_gndstid dimension is 16
+2019-08-20T09:45:20.381831981|squirrel|check_dds_pkt_fields|INFO|dds_hd_vcid dimension is 16
+2019-08-20T09:45:20.383188912|squirrel|check_dds_pkt_fields|INFO|dds_hd_slesrvid dimension is 8
+2019-08-20T09:45:20.384567565|squirrel|check_dds_pkt_fields|INFO|dds_hd_tmqf dimension is 8
+2019-08-20T09:45:20.385920870|squirrel|check_dds_pkt_fields|INFO|hd_id_version_n dimension is 3
+2019-08-20T09:45:20.387397642|squirrel|check_dds_pkt_fields|INFO|hd_id_type dimension is 1
+2019-08-20T09:45:20.388856310|squirrel|check_dds_pkt_fields|INFO|hd_dfhflag dimension is 1 value is 1
+2019-08-20T09:45:20.390244401|squirrel|check_dds_pkt_fields|INFO|hd_apid_pid dimension is 7
+2019-08-20T09:45:20.391592788|squirrel|check_dds_pkt_fields|INFO|hd_apid_cat dimension is 4
+2019-08-20T09:45:20.395945148|squirrel|check_dds_pkt_fields|INFO|hd_apid dimension is 11 dec value is 1612
+2019-08-20T09:45:20.397350821|squirrel|check_dds_pkt_fields|INFO|hd_seq_flag dimension is 2
+2019-08-20T09:45:20.400768245|squirrel|bintodec|WARN|argument 00000000101000 has leading zeros 00000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.403400309|squirrel|check_dds_pkt_fields|INFO|hd_seq_ssc dimension is 14 dec value is 40
+2019-08-20T09:45:20.406892851|squirrel|bintodec|WARN|argument 0000000000001011 has leading zeros 000000000000 if you want to enter an octal number use octodec instead
+2019-08-20T09:45:20.409672917|squirrel|check_dds_pkt_fields|INFO|hd_pktlen dimension is 16 value is 11
+2019-08-20T09:45:20.411027728|squirrel|check_dds_pkt_fields|INFO|dfh_spare1 dimension is 1
+2019-08-20T09:45:20.412440214|squirrel|check_dds_pkt_fields|INFO|dfh_pusver dimension is 3
+2019-08-20T09:45:20.414546337|squirrel|check_dds_pkt_fields|INFO|dfh_spare2 dimension is 4
+2019-08-20T09:45:20.415991578|squirrel|check_dds_pkt_fields|INFO|dfh_service_type dimension is 8
+2019-08-20T09:45:20.417338670|squirrel|check_dds_pkt_fields|INFO|dfh_service_subtype dimension is 8
+2019-08-20T09:45:20.418994441|squirrel|check_dds_pkt_fields|INFO|dfh_destination dimension is 8
+2019-08-20T09:45:20.421085614|squirrel|check_dds_pkt_fields|INFO|dfh_scet dimension is 48
+2019-08-20T09:45:20.422480456|squirrel|check_dds_pkt_fields|INFO|tot number of bits of the packet is 272

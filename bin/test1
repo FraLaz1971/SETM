@@ -1,0 +1,22 @@
+#!/bin/bash
+. lib/srn_tm_lib
+if test -a data/firstpackets.ccsds; then rm data/firstpackets.ccsds; fi
+NPACKETS=10
+{
+for p in {0..$NPACKETS}
+do
+	set_tm_packet
+	debug "#### packet n. $p ####"
+	pb=$(dectobin $p)
+	debug "ssc binary value $pb dec value $p"
+	debug "padding with zeros to 14 bits"
+	ppb=$(leftpadstring $pb 14 '0')
+	pbv=($(bitstringtobitvec $ppb))
+	debug "ssc binary vector values ${pbv[*]}"
+	pbv_dim=${#pbv[*]}
+	debug "ssc bit vector: ${pbv[*]} has dimension $pbv_dim"
+	hd_seq_ssc=( ${pbv[*]} )
+	check_pkt_fields
+	dump_packet
+done
+}>> firstpackets.ccsds

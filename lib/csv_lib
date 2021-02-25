@@ -1,0 +1,326 @@
+#!/bin/bash
+# /*
+#  * @file csv_lib
+#  * @brief error values for a simple bash library, suitable for science research
+#  * containing sw tools to be used in the P/L experiments
+#  * onboard the ESA/JAXA BepiColombo space mission 
+#  * http://sci.esa.int/bepicolombo
+#  * @copyright (C) 2019 GPL 2 free software license 
+#  * @author Francesco Lazzarotto (INAF - OAPD) Francesco.lazzarotto@inaf.it
+#  * 
+#  * This program is free software; you can redistribute it and/or modify
+#  * it under the terms of the GNU General Public License as published by
+#  * the Free Software Foundation; either version 2 of the License, or
+#  * (at your option) any later version. (GPL-2.0-or-later)
+#  * 
+#  * This program is distributed in the hope that it will be useful,
+#  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  * GNU General Public License for more details.
+#  * 
+#  * You should have received a copy of the GNU General Public License along
+#  * with this program; if not, write to the Free Software Foundation, Inc.,
+#  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#  * 
+#  * library definition to be sourced from a main program/script
+#  */
+
+. lib/errvals
+. lib/utils_lib
+. lib/xml_lib
+
+FS=","  #fields separator
+RS="\n" #record separator
+OUTDIR="data"
+#
+
+#metadata
+unset N_FIELDS  # n fields in a record
+unset N_REMARKS #n. of comment lines in the input file
+unset N_RECORDS #n. of data lines/records in the file
+
+N_FIELDS=0 # n fields in a record, initialised to 0 (empty file or containing only EOF line )
+N_REMARKS=0 #n. of comment lines in the input file (inizialisation)
+N_RECORDS=-1 #n. of data lines/records in the file (inizialisation)
+# n tot of csv file rows = N_REMARKS + N_RECORDS
+N_UNITS=0 #n. of units in a record (=n. of fields/columns)
+N_TYPES=0 #n. of types in a record (=n. of fields/columns)
+N_SIZES=0 #n. of sizes in a record (=n. of fields/columns)
+# REMARKS an array of strings containing the comment rows of the csv file
+REMARKS[0]=""; 
+remcnt=0; # index for iterating on the comments header
+maxcom=0; # index of the last inserted comment row
+
+C_NAME[0]="" #array containing fields names (row[-4])
+C_UNIT[0]="" #array containing fiesds measurement units (s, degC, m, ...) (row[-3])
+C_TYPE[0]="" #array containing fields types (int|float|string) (row[-2])
+C_SIZE[0]="" #array containing the size in bytes of the data items for that column (row[-1])
+
+
+# RECORDS an array of strings containing the data rows/records of the csv file
+# as default rows are pushed in the array consecutively
+RECORDS[0]=""; 
+reccnt=0; # index for iterating on the data lines
+maxrec=0; # index of the last inserted data row
+
+#functions filling arrays
+
+#set the name of the fields in the C_NAME array
+set_names(){
+  if [[ $# -ne $N_FIELDS ]]
+  then
+    setdebuglevel "ERR"
+    debug "wrong n. of elements or N_FIELDS (= $N_FIELDS) not set"
+    return $E_BADARGS;
+  else
+    C_NAME=( $@ )
+  fi
+  setdebuglevel "INFO"
+}
+
+#set the physical unit of the fields in the C_UNIT array
+set_units(){
+  if [[ $# -ne $N_FIELDS ]]
+  then
+    setdebuglevel "ERR"
+    debug "wrong n. of elements or N_FIELDS not set"
+    return $E_BADARGS;
+  else
+    C_UNIT=( $@ )
+  fi
+  setdebuglevel "INFO"
+}
+
+#set the data type (int|float|string) of the fields in the C_TYPE array
+set_types(){
+  if [[ $# -ne $N_FIELDS ]]
+  then
+    setdebuglevel "ERR"
+    debug "wrong n. of elements or N_FIELDS not set"
+    return $E_BADARGS;
+  else
+    C_TYPE=( $@ )
+  fi
+  setdebuglevel "INFO"
+}
+
+#set the size in BYTES of the data field in the C_SIZE array
+set_sizes(){
+  if [[ $# -ne $N_FIELDS ]]
+  then
+    setdebuglevel "ERR"
+    debug "wrong n. of elements or N_FIELDS not set"
+    return $E_BADARGS;
+  else
+    C_SIZE=( $@ )
+  fi
+  setdebuglevel "INFO"
+}
+
+# TODO insert check on the input string
+push_comment(){
+  REMARKS[$maxcom]="$@"
+  maxcom=$(($maxcom+1))
+}
+
+
+# TODO insert check on the input string
+push_record(){
+  RECORDS[$maxrec]="$@"
+  maxrec=$(($maxrec+1))
+}
+
+csv_report(){
+  debug "input file: $infile"
+  debug "output metadata file: $COUTFILE" #including OUTDIR
+  debug "output data file: $DOUTFILE" #including OUTDIR
+  debug "tot n. of lines: $(($maxcom+$maxrec))"
+  debug "n. of remarks lines: $(($maxcom))"
+  debug "n. of data records: $(($maxrec))"
+  debug "last element index: $maxrec"
+  debug "$(declare -p REMARKS)"
+  debug "$(declare -p RECORDS)"
+  debug "$(declare -p C_NAME)"
+  debug "$(declare -p C_UNIT)"
+  debug "$(declare -p C_TYPE)"
+  debug "$(declare -p C_SIZE)"
+}
+
+#print all read lines in the comments
+print_comments(){
+  ARG=1
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <outfile>"
+    return $E_BADARGS
+  elif [[ "$1" == "-" ]]
+  then
+    CSVOFILE="/dev/stdout"
+  else
+    #just doit!
+    CSVOFILE="$1"
+    if test -f "$CSVOFILE"
+    then 
+      debug "file $CSVOFILE exists: removing!"
+      rm -f "$CSVOFILE"
+    else
+      touch $CSVOFILE
+    fi
+    i=0
+    MAX=$(( ${#REMARKS[*]} - 1 ))
+    for i in  $(  eval echo  {0..$MAX})
+    do
+      debug "REMARKS[$i] = ${REMARKS[$i]}"
+      echo "${REMARKS[$i]}" >> "$CSVOFILE"
+    done
+  fi
+}
+#print all data records/row of the read csv file
+print_data(){
+  ARG=1
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <outfile>"
+    return $E_BADARGS
+  elif [[ "$1" == "-" ]]
+  then
+    CSVOFILE="/dev/stdout"
+  else
+    #just doit!
+    if [[ $CSVOFILE != "/dev/stdout" ]]
+    then
+      CSVOFILE="$1"
+    fi
+    if test -f "$CSVOFILE"
+    then 
+      #rm -f "$CSVOFILE"
+      debug "file $CSVOFILE exists (doing nothing)"
+    else
+      touch $CSVOFILE
+    fi
+    i=0
+    MAX=$(( ${#RECORDS[*]} - 1 ))
+    for i in  $(  eval echo  {0..$MAX})
+    do
+      debug "RECORDS[$i] = ${RECORDS[$i]}"
+      echo ${RECORDS[$i]} >> "$CSVOFILE"
+    done
+  fi
+}
+
+#set OUTDIR with first pos. parameter
+set_outdir(){
+  OUTDIR="$1"
+}
+
+#set output filename (complete path including outdir)
+set_filename(){
+  basef=$(echo "$1" | cut -d . -f 1)
+  ts=$(get_timestamp)
+   DOUTFILE=$(mktemp -u -p $OUTDIR -t "$basef"_"$ts"_XXXXX --suffix .csv)
+   COUTFILE=$(mktemp -u -p $OUTDIR -t "$basef"_"$ts"_XXXXX --suffix .conf)
+}
+
+get_out_data_fname(){
+  echo $DOUTFILE
+}
+
+get_out_conf_fname(){
+  echo $COUTFILE
+}
+
+# extracts metadata from the input file reading the data records
+# and sets in the metadata arrays of the library
+extract_metadata(){
+  :
+}
+
+set_table_size(){
+  ARG=1
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <nfields>"
+    return $E_BADARGS
+  else
+    #just doit!
+    N_FIELDS="$1" # n fields in a record
+    #MAX=
+    #creating metadata arrays with their dimension, default values set as values of their indexes
+    eval C_NAME=( {0..$(($N_FIELDS-1))} ) #array containing fields names (row[-4])
+    eval C_UNIT=( {0..$(($N_FIELDS-1))} ) #array containing fiesds measurement units (s, degC, m, ...) (row[-3])
+    eval C_TYPE=( {0..$(($N_FIELDS-1))} ) #array containing fields types (int|float|string) (row[-2])
+    eval C_SIZE=( {0..$(($N_FIELDS-1))} ) #array containing the size in bytes of the data items for that column (row[-1])
+    [[ $DEBUG = 1 ]] && debug "size of C_NAME = ${#C_NAME[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_UNIT = ${#C_UNIT[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_TYPE = ${#C_TYPE[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_SIZE = ${#C_SIZE[*]}"
+  fi
+}
+
+print_metadata(){
+  ARG=2; DEBUG=1
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <nfields> <outfile>"
+    return $E_BADARGS
+  else
+    [[ $DEBUG = 1 ]] && debug "size of C_NAME = ${#C_NAME[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_UNIT = ${#C_UNIT[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_TYPE = ${#C_TYPE[*]}"
+    [[ $DEBUG = 1 ]] && debug "size of C_SIZE = ${#C_SIZE[*]}"
+    CONFOFILE="$2"; 
+    if test -f "$CONFOFILE"
+    then 
+      rm -f "$CONFOFILE"
+    else
+      touch $CONFOFILE
+    fi
+    N_FIELDS="$1"
+    [[ $DEBUG = 1 ]] && debug "S1 = $1"
+    [[ $DEBUG = 1 ]] && debug "N_FIELDS = $N_FIELDS"
+    #total metadata
+    echo "N_REMS, $maxcom"  >>"$CONFOFILE"
+    echo "N_ROWS, $maxrec"  >>"$CONFOFILE"
+    echo "N_COLS, $N_FIELDS"  >>"$CONFOFILE"
+    #column metadata section
+    MAX=0; if [[ $(($N_FIELDS-1)) -gt 0 ]]; then MAX=$(($N_FIELDS-1));fi
+    for c in $(eval echo {0..$MAX} )
+    do
+      [[ $DEBUG = 1 ]] && debug "writing C_NAME_$c, ${C_NAME[$c]}"
+      echo "C_NAME_$c, ${C_NAME[$c]}"  >>"$CONFOFILE" 
+      [[ $DEBUG = 1 ]] && debug "writing C_UNIT_$c, ${C_UNIT[$c]}"
+      echo "C_UNIT_$c, ${C_UNIT[$c]}"  >>"$CONFOFILE"
+      [[ $DEBUG = 1 ]] && debug "writing C_TYPE_$c, ${C_TYPE[$c]}"
+      echo "C_TYPE_$c, ${C_TYPE[$c]}"  >>"$CONFOFILE"
+      [[ $DEBUG = 1 ]] && debug "writing C_SIZE_$c, ${C_SIZE[$c]}"
+      echo "C_SIZE_$c, ${C_SIZE[$c]}"  >>"$CONFOFILE"
+    done
+  fi
+  DEBUG=0
+}
+
+# abbreviations: C--> Column/Field, F--> File, R-->Record/Row, RS--> Record/Row Separator, FS--> Field/Column Separator
+# RS defaults '\n' Line Feed, 0A hex. FS defaults ','
+# EOF-->End Of File/dataset: a row containing only the RS
+# example of usage:
+#. lib/csv_lib; N_FIELDS=3; set_names Time temp1 temp2; set_units s degC degC; set_types int int int; set_sizes 4 2 2;push_comment "#this is a comment";push_record "1 ,2, 3"; push_record "6,7,8";print_metadata 3 data/dataset03.conf; print_comments data/dataset03.csv ;print_data data/dataset03.csv;cat data/dataset03.conf;cat data/dataset03.csv;report
+# . lib/csv_lib; N_FIELDS=3; set_names Time temp1 temp2; print_metadata 3 test01.out; cat test01.out
+#. lib/csv_lib; N_FIELDS=3; set_names Time temp1 temp2; set_units s degC degC; set_types int int int; set_sizes 4 2 2;print_metadata 3 test01.out; cat test01.out
+#  lib/csv_lib; N_FIELDS=3; set_names Time temp1 temp2; set_units s degC degC; set_types int int int; set_sizes 4 2 2;push_record "1 ,2, 3"; push_record "6,7,8";print_metadata 3 data/dataset01.conf; print_data data/dataset03.csv;cat data/dataset03.conf;cat data/dataset03.csv;report
+# cat data/20191008T163914/test_utils_input_01_20191008T163914_0Fv8Y.conf
+# N_REMS, 14
+# N_ROWS, 7
+# N_COLS, 3
+# C_NAME_0, Time
+# C_UNIT_0, s
+# C_TYPE_0, int
+# C_SIZE_0, 4
+# C_NAME_1, temp1
+# C_UNIT_1, degC
+# C_TYPE_1, int
+# C_SIZE_1, 2
+# C_NAME_2, temp2
+# C_UNIT_2, degC
+# C_TYPE_2, int
+# C_SIZE_2, 2
+

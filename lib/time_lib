@@ -1,0 +1,489 @@
+#!/bin/bash
+#/** 
+#* @file time_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle bepicolombo payload instrument flight telemetry and processed data 
+#* @url http://sci.esa.int/bepicolombo
+#* this is a bash library of functions for handling time related computation
+#* it implements the standard iso-8601 and is based on the date utility
+#* included in the package "gnu coreutils" http://www.gnu.org/software/coreutils/date
+#* and on the C/C++ library <time.h>/<ctime>
+#**/
+
+. lib/utils_lib
+# unset all variable assignement performed in previous executions
+unset timestamp        #1timestamp
+unset long_timestamp   #2timestamp_short 
+unset datetime         #3datetime
+unset long_datetime    #4datetime_short
+#
+unset year         # year                  (4 digits YYYY) #5#year
+unset month        # month of the year     (2 digits MM)   #6#month
+unset day          # day of the month      (2 digits DD)   #7#day
+#
+unset hours        # hour of the day       (2 digits HH)   #8#hours
+unset minutes      # minutes in a hour     (2 digits mm)   #9#minutes
+unset seconds      # seconds in a minute   (2 digits ss)   #10#seconds
+unset timezone     # time zone, Z for UTC or +/-HH #11     #11#timezone
+#
+unset msecs        # milliseconds  #12#msecs
+unset usecs        # microsenconds #13#usecs
+#
+unset doy          # day of the year       (3 digits OOO -o capital-) #14#doy
+unset week         # week of the year      (2 digits WW) #15#week
+
+unset epoch;       # epoch string
+unset totsecs;     # datetime in seconds (totsecs=0 <---> epoch)
+#
+unset tstart       # start of a given time interval
+unset tstop        # stop of a given time interval
+unset duration     # duration of the given time interval
+
+
+declare -i year         # year                  (4 digits YYYY) #5#year
+declare -i month        # month of the year     (2 digits MM)   #6#month
+declare -i day          # day of the month      (2 digits DD)   #7#day
+#
+declare -i hours        # hour of the day       (2 digits HH)   #8#hours
+declare -i minutes      # minutes in a hour     (2 digits mm)   #9#minutes
+declare -i seconds      # seconds in a minute   (2 digits ss)   #10#seconds
+
+declare -i doy          # day of the year       (3 digits OOO -o capital-) #14#doy
+declare -i week         # week of the year      (2 digits WW) #15#week
+declare -i totsecs;     # datetime in seconds   (totsecs=0 <---> epoch)
+#
+declare -i tstart       # start of a given time interval
+declare -i tstop        # stop of a given time interval
+declare -i duration     # duration of the given time interval
+
+
+
+#costants
+if [[ $dp == "" ]]; then  readonly dp="+'%Y%m%dT%H%M%SZ'"; fi       #dp =       date pattern
+
+if [[ $ldp == "" ]]; then  readonly ldp="+'%Y-%m-%dT%H:%M:%SZ'"; fi  #ldp = long date pattern
+
+reset_timer(){
+  tstart=0
+  tstop=0
+  duration=0
+}
+
+set_tstart(){
+  ARG=1; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <start_time(s)>"
+    return $E_BADARGS
+  else
+    tstart="$1"
+  fi
+}
+
+get_tstart(){
+  echo "$tstart"
+}
+
+set_tstop(){
+  ARG=1; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <stop_time(s)>"
+    return $E_BADARGS
+  else
+    tstop="$1"
+  fi
+}
+
+get_tstop(){
+  echo "$tstop"
+}
+
+autoset_duration(){
+   duration=$(( $tstop - $tstart))
+}
+
+get_duration(){
+  echo $duration
+}
+
+autoset_epoch(){
+  year="1970"   # year default value                 (4 digits YYYY) 
+  month="01"    # month of the year default value    (2 digits MM)   
+  day="01"      # day of the month default value     (2 digits DD)   
+  #
+  doy="000"     # day of the year default value      (3 digits OOO -o capital-)
+  week="00"     # week of the year default value     (2 digits WW)
+  #
+  hours="00"    # hour of the day default value      (2 digits HH)
+  minutes="00"  # minutes in a hour default value    (2 digits mm)
+  seconds="00"  # seconds in a minute default value  (2 digits ss)
+  #
+  timezone="Z"  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+  epoch="$(get_year)""$(get_month)""$(get_day)"T"$(get_hours)""$(get_minutes)""$(get_seconds)""$(get_timezone)"
+}
+
+
+set_epoch(){
+  epoch="$(get_year)""$(get_month)""$(get_day)"T"$(get_hours)""$(get_minutes)""$(get_seconds)""$(get_timezone)"
+}
+
+get_epoch(){
+  echo "$epoch"
+}
+
+get_iso_datetime(){
+  date -u +'%Y%m%dT%H%M%SZ' -d "$date"                                                                               
+}
+
+get_iso_long_datetime(){
+  date -u +'%Y-%m-%dT%H:%M:%SZ'-d "$date"                                                                               
+}
+
+get_iso_date(){
+  date -u --iso -d "$date"                                                                               
+}
+
+get_iso_long_date(){
+  date -u --iso -d "$date"                                                                               
+}
+
+get_current_datetime(){
+  date -u +'%Y%m%dT%H%M%SZ'                                                                               
+}
+
+get_current_long_datetime(){
+  date -u +'%Y-%m-%dT%H:%M:%SZ'                                                                               
+}
+
+get_current_datetime_notz(){ #without timezone string
+  date -u +'%Y%m%dT%H%M%S'                                                                               
+}
+
+get_current_long_datetime_notz(){ #without timezone string
+  date -u +'%Y-%m-%dT%H:%M:%S'                                                                               
+}
+
+get_long_timestamp(){
+  echo "$long_timestamp"
+}
+
+set_ordinal_date(){ #5
+  ARG=2; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <year> <doy>"
+    return $E_BADARGS
+  else
+    year="$1"; doy="$2"
+  fi
+}
+
+get_current_ordinal_date(){ 
+  date -u +'%Y%j' -d "$date"
+}
+
+get_ordinal_date_long(){ 
+  date -u +'%Y-%j' -d "$date"
+}
+
+get_ordinal_date(){ 
+  date -u +'%Y%j' -d "$date"
+}
+
+get_current_ordinal_date(){ 
+  date -u +'%Y%j'
+}
+
+get_current_long_ordinal_date(){ 
+  date -u +'%Y-%j'
+}
+
+ordinal_date_to_date () { 
+  ARG=2; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+        echo "usage: ${FUNCNAME[0]} <year> <doy>"
+    return $E_BADARGS
+  else
+    date -d "$1-01-01 +$2 days -1 day" "+%Y%m%d"; 
+  fi
+}
+
+ordinal_date_to_long_date () { 
+  ARG=2; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+        echo "usage: ${FUNCNAME[0]} <year> <doy>"
+    return $E_BADARGS
+  else
+    date -d "$1-01-01 +$2 days -1 day" "+%Y-%m-%d"; 
+  fi
+}
+
+totsecs_to_date(){
+  datetime=$(eval date -u $dp -d '@$totsecs')
+  echo $datetime
+}
+
+set_year(){ #5
+  year="$1"
+}
+
+get_year(){ #5
+  leftpadstring "$year" 2 '0'
+}
+
+set_month(){ #6
+  month="$1"
+}
+
+get_month(){ #6
+  leftpadstring $month 2 '0'
+}
+
+set_day(){ #7
+  day="$1"
+}
+
+get_day(){ #7
+  leftpadstring "$day" 2 '0' 
+}
+
+set_hours(){ #8
+  hours="$1"
+}
+
+get_hours(){ #8
+  leftpadstring "$hours" 2 '0' 
+}
+
+set_minutes(){ #9
+  minutes="$1"
+}
+
+get_minutes(){ #9
+  leftpadstring "$minutes" 2 '0' 
+}
+
+set_seconds(){ #10
+  seconds="$1"
+}
+
+get_seconds(){ #10
+  leftpadstring "$seconds"  2 '0' 
+}
+
+set_timezone(){ #11
+  timezone="$1"
+}
+
+get_timezone(){ #11
+  echo "$timezone"
+}
+
+set_msecs(){ #12
+  msecs="$1"
+}
+
+get_msecs(){ #12
+  leftpadstring "$msecs" 3 '0'
+}
+
+set_usecs(){ #13
+  usecs="$usecs"
+}
+
+get_usecs(){ #13
+  leftpadstring  $usecs 6 '0'
+}
+
+set_doy(){   #14
+  doy=$doy
+}
+# 
+get_doy(){   #14
+  printf "%2d\n" $doy
+}
+# 
+set_week(){  #15
+  week="$1"
+}
+# 
+get_iso_week(){  #16
+  echo $week
+}
+
+get_gregorian_week(){  #16
+  date +'%W' -d "$date"
+}
+
+get_week(){
+  get_iso_week
+}
+# year="$1" # month="$2"  # day="$3" hours="$4" minutes="$5" seconds="$6" timezone="$7"
+set_datetime(){
+  ARG=7; DEBUG=0
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <year> <month> <day> <hours> <minutes> <seconds> <timezone>"
+    return $E_BADARGS
+  else
+    [[ $DEBUG = 1 ]] &&  "executing ${FUNCNAME[0]} $(echo $@)"
+    year="$1"   # year parameter value                  (4 digits YYYY)
+    month="$2"  # month of the year default value       (2 digits MM)
+    day="$3"    # day of the month default value        (2 digits DD)
+    # #
+    hours="$4"     # hour of the day default value      (2 digits HH)
+    minutes="$5"  # minutes in a hour default value     (2 digits mm)
+    seconds="$6"  # seconds in a minute default value   (2 digits ss)
+    # 
+    timezone="$7"  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+    [[ $DEBUG = 1 ]] && debug "timezone = $(echo $timezone)"
+    autoset_date; autoset_datetime
+    # autoset doy (day of the year)
+    doy=$(date +'%j' -d $date)
+    # autoset week of the year
+    week=$(date +'%V' -d $date)
+    # autoset totsecs
+    totsecs=$(date +'%s' -d $date)
+  fi
+}
+
+get_datetime(){
+  datetime="$(get_year)""$(get_month)""$(get_day)"T"$(get_hours)""$(get_minutes)""$(get_seconds)""$(get_timezone)"
+  echo "$datetime"
+}
+
+set_datetime_s(){
+  totsecs="$1"
+  [[ $DEBUG = 1 ]] && debug "1) totsecs = $totsecs"
+  datetime=$(totsecs_to_date)
+  year=${datetime:0:4}
+  month=${datetime:4:2}    # month of the year default value    (2 digits MM)   
+  day=${datetime:6:2}      # day of the month default value     (2 digits DD)   
+  #
+  #
+  hours=${datetime:9:2}    # hour of the day default value      (2 digits HH)
+  minutes=${datetime:11:2}  # minutes in a hour default value    (2 digits mm)
+  seconds=${datetime:13:2}  # seconds in a minute default value  (2 digits ss)
+  #
+  timezone=${datetime:15:1}  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+  [[ $DEBUG = 1 ]] && debug "2) totsecs = $totsecs"
+
+}
+
+get_datetime_s(){
+  echo "$totsecs"
+}
+
+get_current_datetime_s(){
+  autoset_current_datetime; 
+  echo "$totsecs"
+}
+
+
+get_long_datetime(){
+  long_datetime="$(get_year)"'-'"$(get_month)"'-'"$(get_day)"'T'"$(get_hours)"':'"$(get_minutes)"':'"$(get_seconds)""$(get_timezone)"
+  echo "$long_datetime"
+}
+
+get_date(){
+  date="$year""$month""$day"
+  echo "$date"
+}
+
+autoset_date(){
+  get_date >/dev/null
+}
+
+get_long_date(){
+  date +'%Y-%m-%d' -d "$date"
+}
+
+autoset_timestamp(){
+  get_timestamp >/dev/null
+}
+
+autoset_long_timestamp(){
+  get_long_timestamp >/dev/null
+}
+
+# get_(){
+#   :
+# }
+
+autoset_datetime(){
+  get_datetime >/dev/null
+}
+
+autoset_long_timestamp(){
+  get_long_datetime >/dev/null
+}
+
+autoset_current_datetime(){
+  datetime="$(eval date $dp)"
+  year=${datetime:0:4}
+  month=${datetime:4:2}    # month of the year default value    (2 digits MM)   
+  day=${datetime:6:2}      # day of the month default value     (2 digits DD)   
+  #
+  #
+  hours=${datetime:8:2}    # hour of the day default value      (2 digits HH)
+  minutes=${datetime:10:2}  # minutes in a hour default value    (2 digits mm)
+  seconds=${datetime:12:2}  # seconds in a minute default value  (2 digits ss)
+  #
+  timezone=${datetime:14:2}  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+    autoset_date; autoset_datetime
+    # autoset doy (day of the year)
+  #  doy=     # day of the year default value      (3 digits OOO -o capital-)
+    doy=$(date +'%j' -d $date)
+    # autoset week of the year
+  #  week=     # week of the year default value    (2 digits WW)
+    week=$(date +'%V' -d $date)
+    # autoset totsecs
+    totsecs=$(date +'%s')
+}
+
+time_report(){
+  debug "current datetime: $(get_current_datetime)"
+  debug "current datetime seconds: $(get_current_datetime_s)"
+  debug "datetime: $(get_datetime)"
+  debug "datetime seconds: $(get_datetime_s)"
+  debug "epoch = $(get_epoch)"
+  debug "tstart = $(get_tstart)"
+  debug "tstop = $(get_tstop)"
+  debug "duration = $(get_duration) s"
+}
+
+autoset_datetime_epoch(){
+  year="1970"   # year default value                 (4 digits YYYY) 
+  month="01"    # month of the year default value    (2 digits MM)   
+  day="01"      # day of the month default value     (2 digits DD)   
+  #
+  doy="000"     # day of the year default value      (3 digits OOO -o capital-)
+  week="00"     # week of the year default value     (2 digits WW)
+  #
+  hours="00"    # hour of the day default value      (2 digits HH)
+  minutes="00"  # minutes in a hour default value    (2 digits mm)
+  seconds="00"  # seconds in a minute default value  (2 digits ss)
+  #
+  timezone="Z"  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+  epoch="$(get_year)""$(get_month)""$(get_day)"T"$(get_hours)""$(get_minutes)""$(get_seconds)""$(get_timezone)"
+}
+
+  ###
+  # to be executed at startup
+  autoset_datetime_epoch; reset_timer
+  ###
+
+  # year="1970"   # year default value                 (4 digits YYYY)
+  # month="01"    # month of the year default value    (2 digits MM)
+  # day="01"      # day of the month default value     (2 digits DD)
+  # #
+  # hour="00"     # hour of the day default value      (2 digits HH)
+  # minutes="00"  # minutes in a hour default value    (2 digits mm)
+  # seconds="00"  # seconds in a minute default value  (2 digits ss)
+  # 
+  # timezone="Z"  # timezone of the timestamp, can be +/-HH (hours of time shift) or Z for UTC (or GMT) Greenwich time 
+# example usage: . lib/time_lib; set_timestamp 2019 10 10 16 06 32 Z; ;get_timestamp; get_current_timestamp

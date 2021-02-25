@@ -1,0 +1,159 @@
+#!/bin/bash
+#/** 
+#* @file file_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle bepicolombo payload instrument flight telemetry and processed data 
+#* @url http://sci.esa.int/bepicolombo
+#* this is a bash library of functions for handling files processed in the ground software
+#**/
+
+. lib/utils_lib
+
+# ground software file names are composed by parts describing the content of the file
+# this metadata can be also written in an attached header, xml label or external conf file 
+unset plinstr  #name of the payload instrument (fp1)
+unset proclevel #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... )
+unset datatype  #type of the data ( hk=(HouseKeeping) | sc=(Science) | ...)
+unset plunit   #name of the P/L instrument sub unit (elena | mipa | picam | strofio | scu)
+unset prodmode  #data production mode
+unset timestamp #timestamp to be added to the filename
+unset ext       #extension to be added after a . at the end of the file name (ext)
+unset fnpsep    #filename part separator (ps)
+
+unset filename
+unset filename_notz
+unset indir
+unset outdir
+
+filename=""
+indir=""
+outdir=""
+
+set_all_fnparts(){ #sets all parts composing the file name
+  ARG=8
+  if [[ $# -ne "$ARG" ]] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <instrument> <datatype> <proclevel> <plunit> <prodmode> <timestamp>  <ext> <separator>"
+    return $E_BADARGS
+  else
+     plinstr="$1"    #name of the payload instrument (fp1)
+     datatype="$2"   #type of the data ( hk=(HouseKeeping) | sc=(Science) | ...) (fp3)
+     proclevel="$3"  #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... ) (fp5)
+     plunit="$4"     #name of the P/L instrument sub unit (elena | mipa | picam | strofio | scu) (fp2)
+     prodmode="$5"   #data production mode (fp4)
+     timestamp="$6"  #timestamp to be added to the filename (fp6)
+     ext="$7"        #extension to be added after a . at the end of the file name (fp7)
+     fnpsep="$8"     #filename part separator (fp8)
+  fi
+}
+
+autoset_filename(){
+  #                             
+  filename="$plinstr""$fnpsep""$proclevel""$fnpsep""$datatype""$fnpsep""$plunit""$fnpsep""$prodmode""$fnpsep""$timestamp"."$ext"
+}
+
+autoset_filename_notz(){
+  #                             
+  filename_notz="$plinstr""$fnpsep""$proclevel""$fnpsep""$datatype""$fnpsep""$plunit""$fnpsep""$prodmode""$fnpsep"."$ext"
+}
+
+
+autoset_outdir(){
+  outdir="outdata/"$(get_iso_timestamp)""
+}
+
+autoset_indir(){
+  :
+}
+
+get_indir(){  #name of the payload instrument
+  echo "$indir"
+}
+
+
+set_indir(){
+  indir="$1"
+}
+
+set_outdir(){
+  outdir="$1"
+}
+
+get_indir(){  #name of the payload instrument
+  echo "$outdir"
+}
+
+
+set_plinstr(){  #name of the payload instrument
+  plinstr="$1"
+}
+
+get_plinstr(){  #name of the payload instrument
+  echo $plinstr
+}
+
+set_plunit(){   #name of the P/L instrument sub unit (elena | mipa | picam | strofio | scu)
+  plunit="$1"
+}
+
+get_plunit(){   #name of the P/L instrument sub unit (elena | mipa | picam | strofio | scu)
+  echo $plunit
+}
+
+set_datatype(){  #type of the data ( hk=(HouseKeeping) | sc=(Science) | ...)
+  datatype="$1"
+}
+
+set_proclevel(){ #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... )
+  proclevel="$1"
+}
+
+get_proclevel(){ #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... )
+  echo $proclevel
+}
+
+set_prodmode(){ #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... )
+  prodmode="$1"
+}
+
+get_prodmode(){ #processing level (raw | pps(=partially processed) | cal(=calibrated) | ... )
+  echo $prodmode
+}
+
+
+set_timestamp(){ #timestamp to be added to the filename
+  timestamp="$1"
+}
+
+get_timestamp(){ #timestamp to be added to the filename
+  echo $timestamp
+}
+
+
+set_ext(){ #extension to be added after a . at the end of the file name
+  ext="$1"
+}
+
+get_ext(){ #extension to be added after a . at the end of the file name
+  echo "$ext"
+}
+
+
+set_fnpsep(){ #filename part separator
+  fnpsep="$1"
+}
+
+get_filename(){
+  autoset_filename
+  echo "$filename"
+}
+
+get_filename_notz(){
+  autoset_filename_notz
+  echo $filename_notz
+}
+
+
+# plinstr_datatype_proclevel_prodmode_plunit_timestamp.ext
+# e.g srn_sc_raw_elena_s32_20191017T161841Z.csv

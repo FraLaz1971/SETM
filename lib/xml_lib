@@ -1,0 +1,107 @@
+#!/bin/bash
+# /*
+#  * @file xml_lib
+#  * @brief simple bash library, suitable for science research
+#  * containing sw tools to be used in the P/L experiments
+#  * onboard the ESA/JAXA BepiColombo space mission 
+#  * http://sci.esa.int/bepicolombo
+#  * @copyright (C) 2019 GPL 2 free software license 
+#  * @author Francesco Lazzarotto (INAF - OAPD) Francesco.lazzarotto@inaf.it
+#  * 
+#  * This program is free software; you can redistribute it and/or modify
+#  * it under the terms of the GNU General Public License as published by
+#  * the Free Software Foundation; either version 2 of the License, or
+#  * (at your option) any later version. (GPL-2.0-or-later)
+#  * 
+#  * This program is distributed in the hope that it will be useful,
+#  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  * GNU General Public License for more details.
+#  * 
+#  * You should have received a copy of the GNU General Public License along
+#  * with this program; if not, write to the Free Software Foundation, Inc.,
+#  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#  * 
+#  * library definition to be sourced from a main program/script
+#  */
+
+DEBUG=0
+
+putDeclaration(){
+  echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+}
+
+putShortDeclaration(){
+  echo "<?xml version=\"1.0\"?>"
+}
+
+putModel(){
+  echo "<?xml-model href=\"$1\" schematypens=\"$1\"?>"
+}
+
+
+openTag(){
+  echo "<"$1">"
+}
+
+openTagn(){ # no carriage return
+  echo -n "<"$1">"
+}
+
+openTagAttributes(){
+DEBUG=1
+  echo -n "<"$1
+  shift
+  pars=( $@ ); MAX=$((${#pars[*]}/2))
+  [[ $DEBUG = 1 ]] && debug "n. pars = ${#pars[*]}"
+  [[ $DEBUG = 1 ]] && debug "pars = [ $(declare -p pars) ]"
+  for atts in $(eval echo {1..$MAX}); do
+    if [[ "$1" == 'xsi:schemaLocation' ]]
+    then
+      av="$1"; shift
+      echo -n " $av=\"$@\""
+      echo ">"
+      return
+    else
+      echo -n " $1=\"$2\""
+      [[ $DEBUG = 1 ]] && debug "atts = $atts s@ $(echo $@)"
+      shift; shift
+    fi
+  done
+  echo ">"
+DEBUG=0
+}
+
+closeTag(){
+  echo "</"$1">"
+}
+
+closeTagn(){ # closes without carriage return
+  echo -n "</"$1">"
+}
+
+
+emptyTag(){
+  openTag "$1"; closeTag "$1"
+}
+
+autoTag(){
+  echo "<"$1"/>"
+}
+
+xml_comment(){
+  echo "<!--"$@"-->"
+}
+
+xml_commentn(){
+  echo "<!--"
+  echo "$@"
+  echo "-->"
+}
+
+indent(){
+  for s in $(eval echo {1..$1})
+  do
+    echo -n " "
+  done
+}

@@ -1,0 +1,1384 @@
+#!/bin/bash
+#/** 
+#* @file pl_tm_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle bepicolombo payload instrument flight telemetry data 
+#* @url http://sci.esa.int/bepicolombo
+#* following the ccsds standard
+#* it follows also the ECSS PUS and space software recommendations
+#* it implements also EDDS, gdds, dds and scos2000 definitions, utilities and headers
+#* in this library the primary header of the ccsds space packet will be called simply "header" abbreviated to HD
+#* the secondary header will be called also Data Field Header (DFH)
+#* this library functions are designed to handle the packet fields for a given single temporary packet
+#* functions handling more packets are handled in the file pl_dataset_lib
+#*
+#**/
+
+# 
+dirpath=lib
+. $dirpath/utils_lib   # include general utilities functions
+. $dirpath/s2k_tm_lib  # include routines to handle scos2000 header fields of the packet
+. $dirpath/el_tm_lib   # include routines to handle elena p/l instr. related fields
+
+# outfile extension for dds tm data files
+outfext="dds"
+ddsoutfext="dds"
+
+# current value of the SSC in decimal
+SSC=0
+SCET=0
+## unset all arrays to reset the array dimensions
+## CCSDS packet fields (bit arrays)
+
+# ccsds primary header (6 BYTES)
+unset hd
+# ccsds primary header fields
+## section version and identification
+unset hd_id_version_n
+unset hd_id_type
+unset hd_dfhflag
+unset hd_apid
+# additional sub fields definitions
+unset hd_apid_pid
+unset hd_apid_cat
+# section sequence control
+unset hd_seq
+## section control fields (2 BYTES)
+unset hd_seq_flag
+unset hd_seq_ssc
+## section packet length (2 BYTES)
+unset hd_pktlen
+## CCSDS tm data field header fields (for BC 10 BYTES = 80 bits)
+unset df  # data field bitarray containing all data (dfh + sdf) for BC TM dim is max 4106 BYTES
+# section data field header 
+unset dfh # bitarray contains all the bits in the dfh , for BC TM dimension is set fixed to 10 BYTES
+unset dfh_destination
+unset dfh_scet
+unset dfh_scet_coarse_B1
+unset dfh_scet_coarse_B2
+unset dfh_scet_coarse_B3
+unset dfh_scet_coarse_B4
+unset dfh_scet_fine_B1
+unset dfh_scet_fine_B2
+
+# section source data field
+
+unset sdf # source data field bit array contains all the bits in the data field (for BC TM max 4096 BYTES, for BC TC max 238 B)
+# subsection for TCs
+unset sdf_appdata # application data (variable, for BC TCs 236 BYTES max)
+unset sdf_errctrl # packet error control (always used for BC TC, for BC TCs 2 BYTES)
+
+unset pktlenval # contains the dec value of the hd_pktlen field 
+unset totbits   # contains the total number of bits of the current packet
+unset totbytes  # contains the total number of BYTES of the current packet
+
+
+## packet fields defined as bit arrays
+## GDDS binary header fields (bit arrays)
+
+declare -a dds_hd_gentime   # Generation Time (8 octets)
+declare -a dds_hd_pktlen    # Packet length (4 octets)
+declare -a dds_hd_gndstid   # Ground station ID (2 octets)
+declare -a dds_hd_vcid      # Virtual Channel ID (2 octets)
+declare -a dds_hd_slesrvid  # SLE Service ID (1 octet)
+declare -a dds_hd_tmqf      # Time Quality Flag (1 octet)
+
+## CCSDS packet fields (bit arrays)
+
+# ccsds primary header (6 BYTES)
+declare -a hd
+# ccsds primary header fields
+## section version and identification
+declare -a hd_id_version_n
+declare -a hd_id_type
+declare -a hd_dfhflag
+declare -a hd_apid
+# additional sub fields definitions
+declare -a hd_apid_pid
+declare -a hd_apid_cat
+# section sequence control
+declare -a hd_seq
+## section control fields (2 BYTES)
+declare -a hd_seq_flag
+declare -a hd_seq_ssc
+## section packet length (2 BYTES)
+declare -a hd_pktlen
+## CCSDS tm data field header fields (for BC 10 BYTES = 80 bits)
+declare -a df  # data field bitarray containing all data (dfh + sdf) for BC TM dim is max 4106 BYTES
+# section data field header 
+declare -a dfh # bitarray contains all the bits in the dfh , for BC TM dimension is set fixed to 10 BYTES
+declare -a dfh_destination
+declare -a dfh_scet
+declare -a dfh_scet_coarse_B1
+declare -a dfh_scet_coarse_B2
+declare -a dfh_scet_coarse_B3
+declare -a dfh_scet_coarse_B4
+declare -a dfh_scet_fine_B1
+declare -a dfh_scet_fine_B2
+
+# section source data field
+
+declare -a sdf # source data field bit array contains all the bits in the data field (for BC TM max 4096 BYTES, for BC TC max 238 B)
+# subsection for TCs
+declare -a sdf_appdata # application data (variable, for BC TCs 236 BYTES max)
+declare -a sdf_errctrl # packet error control (always used for BC TC, for BC TCs 2 BYTES)
+
+# df = dfh + sdf for TCs must be max 242 bytes
+# dfh + sdf for TCs must be max 242 bytes
+# length(df) = lenght(dfh + df),  must be = ($hd_pktlen + 1)
+declare -i pktlenval # contains the dec value of the hd_pktlen field 
+declare -i totbits   # contains the total number of bits of the current packet
+declare -i totbytes  # contains the total number of BYTES of the current packet
+
+#fill default values for the dds header
+dds_hd_gentime=( $(for i in {1..64} ; do echo -n "0 "; done) ) # bytes  0-7   generation time     (8 bytes)
+dds_hd_pktlen=( $(for i in {1..32} ; do echo -n "0 "; done) )  # bytes  8-11  ccsds packet length (8 bytes) 
+dds_hd_gndstid=( $(for i in {1..16} ; do echo -n "0 "; done) ) # bytes 12-13  ground station ID   (2 bytes)
+dds_hd_vcid=( $(for i in {1..16} ; do echo -n "0 "; done) )    # bytes 14-15  virtual channel ID  (2 bytes)
+dds_hd_slesrvid=( $(for i in {1..8} ; do echo -n "0 "; done) ) # byte     16  SLE service ID      (1 byte)
+dds_hd_tmqf=( $(for i in {1..8} ; do echo -n "0 "; done) )     # byte     17  Time Quality Flag   (1 byte)
+
+
+# fill default values for the ccsds header
+
+#fill default values for the ccsds data field header
+
+#fill default values forthe ccsds data field
+
+# CCSDS HEADER (6 BYTES)
+## CCSDS HEADER  CONTROL PART (2 BYTES)
+hd_id_version_n=(0 0 0) # bits 0-2 always set to '000' for ccsds current version
+hd_id_type=(0) # packet id type 0 = TM (1 = TC)
+hd_dfhflag=(1) # set to 1 if DFH is present (always through for BC TM)
+hd_apid=(1 1 1 1 1 1 1 1 1 1 1) # setting idle packet as default
+# distinction used in PUS ECSS / BC
+hd_apid_pid=(1 1 1 1 1 1 1)
+hd_apid_cat=(1 1 1)
+
+# fill the packet version and identification section (2 BYTES) with the previously defined fields
+hd_vid=( ${hd_id_version_n[*]} ${hd_id_type[*]} ${hd_dfhflag[*]} ${hd_apid[*]} )
+## CCSDS HEADER  CONTROL PART (2 BYTES) -setting defaults-
+
+hd_seq_flag=(1 1) # ‘11’ if the Space Packet contains unsegmented User Data.
+hd_seq_ssc=(0 0 0 0 0 0 0 0 0 0 0 0 0 0) # set as first packet of the sequence
+
+# fill the packet control section (2 BYTES) with the previously defined fields
+hd_seq=( ${hd_seq_flag[*]} ${hd_seq_ssc[*]} )
+
+
+hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) # 2 BYTES, $pktlen = ((Total Number of Bytes in the Packet Data Field) – 1)
+
+# fill the whole packet header (6 BYTES) with the previously defined fields/sections
+hd=( ${hd_vid[*]} ${hd_seq[*]} ${hd_pktlen[*]} )
+
+
+#DFH BYTE 1
+dfh_spare1=(0)
+dfh_pusver=(0 0 0)
+dfh_spare2=(0 0 0 0)
+#DFH BYTE 2
+dfh_service_type=(0 0 0 0 0 0 0 0)
+#DFH BYTE 3
+dfh_service_subtype=(0 0 0 0 0 0 0 0)
+#DFH BYTE 4
+dfh_destination=(0 0 0 0 0 0 0 0)
+#SpaceCraft Elapsed Time
+#DFH BYTE 5-10
+for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+
+#DFH BYTE 5
+dfh_scet_coarse_B1=(0 0 0 0 0 0 0 0)
+#DFH BYTE 6
+dfh_scet_coarse_B2=(0 0 0 0 0 0 0 0)
+#DFH BYTE 7
+dfh_scet_coarse_B3=(0 0 0 0 0 0 0 0)
+#DFH BYTE 8
+dfh_scet_coarse_B4=(0 0 0 0 0 0 0 1)
+#DFH BYTE 9
+dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+#DFH BYTE 10
+dfh_scet_fine_B2=(0 0 0 0 0 0 0 0)
+
+sdf=(0 0 0 0 0 0 0 0) # set source data field at least of 1 BYTE for debug
+
+dfh_scet_coarse=(${dfh_scet_coarse_B1[*]} ${dfh_scet_coarse_B2[*]} ${dfh_scet_coarse_B3[*]} ${dfh_scet_coarse_B4[*]})
+dfh_scet_fine=(${dfh_scet_fine_B1[*]} ${dfh_scet_fine_B2[*]})
+dfh_scet=(${dfh_scet_coarse[*]} ${dfh_scet_fine[*]})
+
+# dfh_scet=(${dfh_scet_coarse_B1[*]} ${dfh_scet_coarse_B2[*]} ${dfh_scet_coarse_B3[*]} ${dfh_scet_coarse_B4[*]} ${dfh_scet_fine_B1[*]} ${dfh_scet_fine_B2[*]})
+
+dfh=( ${dfh_spare1[*]} ${dfh_pusver[*]} ${dfh_spare2[*]} ${dfh_service_type[*]} ${dfh_service_subtype[*]} ${dfh_destination[*]} ${dfh_scet[*]} )
+
+
+df=( ${dfh[*]} ${sdf[*]} )
+
+DEBUG=0
+if [[ $DEBUG == 1 ]]
+then
+  debug "dfh_spare1 size = ${#dfh_spare1[*]} bit" 
+  debug "dfh_pusver size = ${#dfh_pusver[*]} bits" 
+  debug "dfh_spare2 size = ${#dfh_spare2[*]} bits" 
+  debug "dfh_service_type size = ${#dfh_service_type[*]} bits"
+  debug "dfh_service_subtype size = ${#dfh_service_subtype[*]} bits" 
+  debug "dfh_destination size = ${#dfh_destination[*]} bits"
+  debug "dfh_scet size = ${#dfh_scet[*]} bits"
+  debug "dfh size = ${#dfh[*]} bits"
+  debug "sdf size = ${#sdf[*]} bits"
+  debug "df size = ${#df[*]} bits"
+fi
+DEBUG=0
+
+clean_current_packet(){
+## unset all arrays to reset the array dimensions
+## CCSDS packet fields (bit arrays)
+
+# ccsds primary header (6 BYTES)
+unset hd
+# ccsds primary header fields
+## section version and identification
+unset hd_id_version_n
+unset hd_id_type
+unset hd_dfhflag
+unset hd_apid
+# additional sub fields definitions
+unset hd_apid_pid
+unset hd_apid_cat
+# section sequence control
+unset hd_seq
+## section control fields (2 BYTES)
+unset hd_seq_flag
+unset hd_seq_ssc
+## section packet length (2 BYTES)
+unset hd_pktlen
+## CCSDS tm data field header fields (for BC 10 BYTES = 80 bits)
+unset df  # data field bitarray containing all data (dfh + sdf) for BC TM dim is max 4106 BYTES
+# section data field header 
+unset dfh # bitarray contains all the bits in the dfh , for BC TM dimension is set fixed to 10 BYTES
+unset dfh_destination
+unset dfh_scet
+unset dfh_scet_coarse_B1
+unset dfh_scet_coarse_B2
+unset dfh_scet_coarse_B3
+unset dfh_scet_coarse_B4
+unset dfh_scet_fine_B1
+unset dfh_scet_fine_B2
+
+# section source data field
+
+unset sdf # source data field bit array contains all the bits in the data field (for BC TM max 4096 BYTES, for BC TC max 238 B)
+# subsection for TCs
+unset sdf_appdata # application data (variable, for BC TCs 236 BYTES max)
+unset sdf_errctrl # packet error control (always used for BC TC, for BC TCs 2 BYTES)
+
+unset pktlenval # contains the dec value of the hd_pktlen field 
+unset totbits   # contains the total number of bits of the current packet
+unset totbytes  # contains the total number of BYTES of the current packet
+
+
+## packet fields defined as bit arrays
+## GDDS binary header fields (bit arrays)
+
+declare -a dds_hd_gentime   # Generation Time (8 octets)
+declare -a dds_hd_pktlen    # Packet length (4 octets)
+declare -a dds_hd_gndstid   # Ground station ID (2 octets)
+declare -a dds_hd_vcid      # Virtual Channel ID (2 octets)
+declare -a dds_hd_slesrvid  # SLE Service ID (1 octet)
+declare -a dds_hd_tmqf      # Time Quality Flag (1 octet)
+
+## CCSDS packet fields (bit arrays)
+
+# ccsds primary header (6 BYTES)
+declare -a hd
+# ccsds primary header fields
+## section version and identification
+declare -a hd_id_version_n
+declare -a hd_id_type
+declare -a hd_dfhflag
+declare -a hd_apid
+# additional sub fields definitions
+declare -a hd_apid_pid
+declare -a hd_apid_cat
+# section sequence control
+declare -a hd_seq
+## section control fields (2 BYTES)
+declare -a hd_seq_flag
+declare -a hd_seq_ssc
+## section packet length (2 BYTES)
+declare -a hd_pktlen
+## CCSDS tm data field header fields (for BC 10 BYTES = 80 bits)
+declare -a df  # data field bitarray containing all data (dfh + sdf) for BC TM dim is max 4106 BYTES
+# section data field header 
+declare -a dfh # bitarray contains all the bits in the dfh , for BC TM dimension is set fixed to 10 BYTES
+declare -a dfh_destination
+declare -a dfh_scet
+# Spacecraft elapsed time coarse (seconds) (4 BYTES)
+declare -a dfh_scet_coarse_B1
+declare -a dfh_scet_coarse_B2
+declare -a dfh_scet_coarse_B3
+declare -a dfh_scet_coarse_B4
+# Spacecraft elapsed time fine (1/10 seconds) (4 BYTES)
+declare -a dfh_scet_fine_B1
+declare -a dfh_scet_fine_B2
+
+# section source data field
+
+declare -a sdf # source data field bit array contains all the bits in the data field (for BC TM max 4096 BYTES, for BC TC max 238 B)
+# subsection for TCs
+declare -a sdf_appdata # application data (variable, for BC TCs 236 BYTES max)
+declare -a sdf_errctrl # packet error control (always used for BC TC, for BC TCs 2 BYTES)
+
+# df = dfh + sdf for TCs must be max 242 bytes
+# dfh + sdf for TCs must be max 242 bytes
+# length(df) = lenght(dfh + df),  must be = ($hd_pktlen + 1)
+declare -i pktlenval # contains the dec value of the hd_pktlen field 
+declare -i totbits   # contains the total number of bits of the current packet
+declare -i totbytes  # contains the total number of BYTES of the current packet
+
+#fill default values for the dds header
+dds_hd_gentime=( $(for i in {1..64} ; do echo -n "0 "; done) )
+dds_hd_pktlen=( $(for i in {1..32} ; do echo -n "0 "; done) )
+dds_hd_gndstid=( $(for i in {1..16} ; do echo -n "0 "; done) )
+dds_hd_vcid=( $(for i in {1..16} ; do echo -n "0 "; done) )
+dds_hd_slesrvid=( $(for i in {1..8} ; do echo -n "0 "; done) )
+dds_hd_tmqf=( $(for i in {1..8} ; do echo -n "0 "; done) )
+
+
+# fill default values for the ccsds header
+
+#fill default values for the ccsds data field header
+
+#fill default values forthe ccsds data field
+
+hd_id_version_n=(0 0 0)
+hd_id_type=(0)
+hd_dfhflag=(0)
+hd_apid=(0 0 0 0 0 0 0 0 0 0 0)
+# distinction for ECSS / BC
+hd_apid_pid=(0 0 0 0 0 0 0)
+hd_apid_cat=(0 0 0)
+
+# fill the packet version and identification section (2 BYTES) with the previously defined fields
+hd_vid=( ${hd_id_version_n[*]} ${hd_id_type[*]} ${hd_dfhflag[*]} ${hd_apid[*]} )
+
+hd_seq_flag=(0 0)
+hd_seq_ssc=(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+
+# fill the packet control section (2 BYTES) with the previously defined fields
+hd_seq=( ${hd_seq_flag[*]} ${hd_seq_ssc[*]} )
+
+hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) # 2 BYTES, $pktlen = ((Total Number of Bytes in the Packet Data Field) – 1)
+
+# fill the whole packet header (6 BYTES) with the previously defined fields/sections
+hd=( ${hd_vid[*]} ${hd_seq[*]} ${hd_pktlen[*]} )
+
+
+#DFH BYTE 1
+dfh_spare1=(0)
+dfh_pusver=(0 0 0)
+dfh_spare2=(0 0 0 0)
+#DFH BYTE 2
+dfh_service_type=(0 0 0 0 0 0 0 0)
+#DFH BYTE 3
+dfh_service_subtype=(0 0 0 0 0 0 0 0)
+#DFH BYTE 4
+dfh_destination=(0 0 0 0 0 0 0 0)
+#SpaceCraft Elapsed Time
+#DFH BYTE 5-10
+for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+
+#DFH BYTE 5
+dfh_scet_coarse_B1=(0 0 0 0 0 0 0 0)
+#DFH BYTE 6
+dfh_scet_coarse_B2=(0 0 0 0 0 0 0 0)
+#DFH BYTE 7
+dfh_scet_coarse_B3=(0 0 0 0 0 0 0 0)
+#DFH BYTE 8
+dfh_scet_coarse_B4=(0 0 0 0 0 0 0 0)
+#DFH BYTE 9
+dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+#DFH BYTE 10
+dfh_scet_fine_B2=(0 0 0 0 0 0 0 1)
+
+sdf=(0 0 0 0 0 0 0 0) # set source data field at least of 1 BYTE for debug
+
+dfh_scet=(${dfh_scet_coarse_B1[*]} ${dfh_scet_coarse_B2[*]} ${dfh_scet_coarse_B3[*]} ${dfh_scet_coarse_B4[*]} ${dfh_scet_fine_B1[*]} ${dfh_scet_fine_B2[*]})
+
+dfh=( ${dfh_spare1[*]} ${dfh_pusver[*]} ${dfh_spare2[*]} ${dfh_service_type[*]} ${dfh_service_subtype[*]} ${dfh_destination[*]} ${dfh_scet[*]} )
+
+
+df=( ${dfh[*]} ${sdf[*]} )
+
+debug "hd_vid size = ${#hd_vid[*]} bits hd_vid() values = ${hd_vid[*]}" 
+debug "hd_seq size = ${#hd_seq[*]} bits hd_seq() values = ${hd_seq[*]}" 
+debug "hd_pktlen size = ${#hd_pktlen[*]} bits values = ${hd_pktlen[*]}" 
+debug "dfh_spare1 size = ${#dfh_spare1[*]} bit" 
+debug "dfh_pusver size = ${#dfh_pusver[*]} bits" 
+debug "dfh_spare2 size = ${#dfh_spare2[*]} bits" 
+debug "dfh_service_type size = ${#dfh_service_type[*]} bits,  dfh_service_type() = ${dfh_service_type[*]}"
+debug "dfh_service_subtype size = ${#dfh_service_subtype[*]} bits, dfh_service_subtype() = ${dfh_service_subtype[*]}" 
+debug "dfh_destination size = ${#dfh_destination[*]} bits"
+debug "dfh_scet size = ${#dfh_scet[*]} bits"
+debug "dfh size = ${#dfh[*]} bits"
+debug "sdf size = ${#sdf[*]} bits"
+debug "df size = ${#df[*]} bits"
+}
+
+# extract packet length from dds header using bbe
+# bbe -s -b "8:4"   test/2019-07-22_tm.dds | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g"
+# bbe -s -b "8:4"   <infile> | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g"
+
+
+reset_dds_header(){
+  dds_hd_gentime=( $(for i in {1..64} ; do echo -n "0 "; done) )
+  dds_hd_pktlen=( $(for i in {1..32} ; do echo -n "0 "; done) )
+  dds_hd_gndstid=( $(for i in {1..16} ; do echo -n "0 "; done) )
+  dds_hd_vcid=( $(for i in {1..16} ; do echo -n "0 "; done) )
+  dds_hd_slesrvid=( $(for i in {1..8} ; do echo -n "0 "; done) )
+  dds_hd_tmqf=( $(for i in {1..8} ; do echo -n "0 "; done) )
+}
+
+set_dds_header(){
+  reset_dds_header
+  dds_hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 0 0)
+  dds_hd_gndstid[15]=1
+  dds_hd_vcid[15]=1
+  dds_hd_slesrvid[7]=1
+  dds_hd_tmqf[7]=1
+}
+
+
+
+# set the source sequence counter with the values of a given bit array
+setSSC(){
+  if [[ $# -ne 14 ]]
+  then
+    setdebuglevel "ERR"
+    debug "exactly a bitarray of size 14 needed"
+    exit $E_BADARGS
+  else
+    DEBUG=0
+    hd_seq_ssc=("$@")
+    if [[ $DEBUG == 1 ]]
+    then
+        [[ $DEBUG == 1 ]] && debug "size of input bitarray is $# [OK]"
+        for i in "${hd_seq_ssc[@]}";
+        do
+            [[ $DEBUG == 1 ]] && debug "$i"
+        done
+    fi
+  fi
+  return $EX_OK;
+}
+
+# set the SSC value given the SSC HEX string value
+setSSC_hex(){
+  bSSC=$( dectobin $(( $(hextodec $1) & $(hextodec "3FFF") )) ); SSC=$(bintodec $bSSC)
+  [[ $DEBUG == 1 ]] && debug "bSSC = $bSSC (binary), SSC = $SSC (dec)"
+  pbs=$(leftpadstring $bSSC 14 '0')
+  [[ $DEBUG == 1 ]] && debug "pbs = $pbs"
+  setSSC $( binarytobitvect $pbs )
+  return $EX_OK
+}
+
+
+# sets the length value of the ccsds packet
+set_ccsds_packet_length(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <length_of_data_field(bytes)>"
+    return $E_BADARGS
+  else
+    plv=$(( $1 - 1 ));plvb=$(dectobin $plv); padded_plvb=$(leftpadstring $plvb 16 '0')
+    [[ $DEBUG == 0 ]] && debug "plv = $plv plvb = $plvb bitvect $( binarytobitvect $padded_plvb  )"
+    hd_pktlen=( $( binarytobitvect $padded_plvb ) )
+  fi
+}
+
+# @fn fill_random_df() fills the data field with random bits values, 
+# @fn[in] $1 takes the number of bits to put in the data field bitarray
+fill_random_df(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    debug "usage: ${FUNCNAME[0]} <length(bytes)>"
+    return $E_BADARGS
+  else
+    n=$(($1 * 8 ))
+    df=( $(randombits $n ) )
+  fi
+}
+
+fill_random_sdf(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <length(bytes)>"
+    return $E_BADARGS
+  else
+    n=$(( $1*8 ))
+    sdf=( $(randombits $n )  )
+  fi
+}
+
+
+# write on stdin the length in bits of the ccsds packet data field
+get_df_length(){
+  debug "length of df is ${#df[*]} bits"
+  echo  ${#df[*]}
+  return $EX_OK
+}
+
+get_df_len_bytes(){
+  lenbytes=0
+  #DFH BYTE 1
+  dfh_spare1=(0)
+  dfh_pusver=(0 0 0)
+  dfh_spare2=(0 0 0 0)
+  #DFH BYTE 2
+  dfh_service_type=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 3
+  dfh_service_subtype=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 4
+  dfh_destination=(0 0 0 0 0 0 0 0)
+  #SpaceCraft Elapsed Time
+  #DFH BYTE 5-10
+  for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+
+  #DFH BYTE 5
+  dfh_scet_coarse_B1=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 6
+  dfh_scet_coarse_B2=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 7
+  dfh_scet_coarse_B3=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 8
+  dfh_scet_coarse_B4=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 9
+  dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+  #DFH BYTE 10
+  dfh_scet_fine_B2=(0 0 0 0 0 0 0 1)
+
+  sdf=(0 0 0 0 0 0 0 0) # set source data field at least of 1 BYTE for debug
+
+  dfh_scet=(${dfh_scet_coarse_B1[*]} ${dfh_scet_coarse_B2[*]} ${dfh_scet_coarse_B3[*]} ${dfh_scet_coarse_B4[*]} ${dfh_scet_fine_B1[*]} ${dfh_scet_fine_B2[*]})
+
+  dfh=( ${dfh_spare1[*]} ${dfh_pusver[*]} ${dfh_spare2[*]} ${dfh_service_type[*]} ${dfh_service_subtype[*]} ${dfh_destination[*]} ${dfh_scet[*]} )
+  df=( ${dfh[*]} ${sdf[*]} )
+  debug "bitarray {#df[*]} length = ${#df[*]} bits "
+  lenbytes=$(( ${#df[*]} / 8 ))
+  debug "df length is $lenbytes BYTES"
+  echo $lenbytes
+  return $EX_OK
+}
+
+# write on stdin the length in bits of the ccsds packet data field
+get_dfh_length(){
+  echo  ${#dfh[*]}
+  return $EX_OK
+}
+
+get_dfh_len_bytes(){
+  dfhlenbytes=0
+  dfhlenbytes=$(( ${#dfh[*]}/8 ))
+  echo $dfhlenbytes
+  return $EX_OK
+}
+
+
+
+autoset_ccsds_packet_length(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else
+    pktlenval=$(( $(get_df_len_bytes) - 1 ))
+    hd_pktlen=( $( binarytobitvect $( dectobin $pktlenval ) ) )
+  fi
+  return $EX_OK
+}
+
+
+update_ccsds_header(){
+  hd=( ${hd_vid[*]} ${hd_seq[*]} ${hd_pktlen[*]} )
+}
+
+
+
+# @fn int set_default_dds_packet()
+set_default_dds_packet(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else
+    set_dds_header # set dds header defaults in case you want use dds format
+    hd_id_version_n=(0 0 0) # if not set to 000 packets would be rejected as erroneus
+    hd_id_type=(0) # zero for all BC telemetry packets
+    hd_dfhflag=(1) # one if DFH is present Exceptions: spacecraft standard time packet and idle packet
+    #debug "hd_apid_pid=($(binarytobitvect $(dectobin 100)))"
+    hd_apid_pid=($(binarytobitvect $(leftpadstring $(dectobin 100) 7 '0' ))) # setting 100 dec as default (SERENA --)
+    hd_apid_cat=($(binarytobitvect $(leftpadstring $(dectobin 12) 4 '0'))) # setting 12 dec as default (Science packet)
+    debug "setting APID to $(getAPID 100 12)"
+    hd_apid=( $(echo ${hd_apid_pid[*]}) $(echo ${hd_apid_cat[*]}))
+    hd_seq_flag=(1 1) # set to ‘11’ if the Space Packet contains unsegmented User Data.
+    debug "executing  'binarytobitvect leftpadstring dectobin $SSC 14 '0'))' =  $(eval echo $( binarytobitvect $(leftpadstring $(dectobin $SSC) 14 '0')) )"
+    debug "setting SSC to $SSC"
+    hd_seq_ssc=( $(eval echo $( binarytobitvect $(leftpadstring $(dectobin $SSC) 14 '0')) ) ) #set the current value of the ssc
+#    hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1) #set as a packet with only the DFH 
+    hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1) #set as a packet with the DFH + 2 bytes 
+    dfh_spare1=(0)
+    dfh_pusver=(0 0 0)
+    dfh_spare2=(0 0 0 0)
+    dfh_service_type=(0 0 0 0 0 0 0 0)
+    dfh_service_subtype=(0 0 0 0 0 0 0 0)
+    dfh_destination=(0 0 0 0 0 0 0 0)
+    #spacecraft elapsed time
+    dfh_scet_coarse_B1=(0 0 0 0 0 0 0 0)
+    dfh_scet_coarse_B2=(0 0 0 0 0 0 0 0)
+    dfh_scet_coarse_B3=(0 0 0 0 0 0 0 0)
+    dfh_scet_coarse_B4=(0 0 0 0 0 0 0 1)
+    dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+    dfh_scet_fine_B2=(0 0 0 0 0 0 0 0)
+    for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+    for((i=0; i<16; i++)); do sdf[$i]=$(randombits 1); done
+  fi
+}
+
+
+set_ccsds_header(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else
+    hd_id_version_n=(0 0 0) # if not set to 000 packets would be rejected as erroneus
+    hd_id_type=(0) # zero for all BC telemetry packets
+    hd_dfhflag=(1) # one if DFH is present. Exceptions: spacecraft standard time packet and idle packet
+    #debug "hd_apid_pid=($(binarytobitvect $(dectobin 100)))"
+    hd_apid_pid=($(binarytobitvect $(leftpadstring $(dectobin 100) 7 '0' ))) # setting 100 dec as default (SERENA --)
+    hd_apid_cat=($(binarytobitvect $(leftpadstring $(dectobin 12) 4 '0'))) # setting 12 dec as default (Science packet)
+    debug "setting APID to $(getAPID 100 12)"
+    hd_apid=($(echo ${hd_apid_pid[*]}) $(echo ${hd_apid_cat[*]}))
+    hd_seq_flag=(1 1)
+    debug "setting SSC to $SSC"
+    hd_seq_ssc=($(binarytobitvect $(leftpadstring $(dectobin $SSC) 14 '0')))
+    #    hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1) #set as a packet with only the DFH 
+    #hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1) #set as a packet with the DFH + 2 bytes 
+    hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0) #set as a packet with the DFH + 1 byte 
+    debug "hd_pktlen (bits) = ${#hd_pktlen[*]} , vals = ${hd_pktlen[*]}"
+
+    hd_vid=( ${hd_id_version_n[*]} ${hd_id_type[*]} ${hd_dfhflag[*]} ${hd_apid[*]} )
+    hd_seq=( ${hd_seq_flag[*]} ${hd_seq_ssc[*]} )
+
+    hd=( ${hd_vid[*]} ${hd_seq[*]} ${hd_pktlen[*]} )
+    debug "ccsds header length (bits) = ${#hd[*]} , vals = ${hd[*]}"
+#      set_ccsds_packet_length 12
+  fi
+}
+
+
+set_ccsds_packet(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else
+    hd_id_version_n=(0 0 0) # if not set to 000 packets would be rejected as erroneus
+    hd_id_type=(0) # zero for all BC telemetry packets
+    hd_dfhflag=(1) # one if DFH is present. Exceptions: spacecraft standard time packet and idle packet
+    #debug "hd_apid_pid=($(binarytobitvect $(dectobin 100)))"
+    hd_apid_pid=($(binarytobitvect $(leftpadstring $(dectobin 100) 7 '0' ))) # setting 100 dec as default (SERENA --)
+    hd_apid_cat=($(binarytobitvect $(leftpadstring $(dectobin 12) 4 '0'))) # setting 12 dec as default (Science packet)
+    debug "setting APID to $(getAPID 100 12)"
+    hd_apid=($(echo ${hd_apid_pid[*]}) $(echo ${hd_apid_cat[*]}))
+    hd_seq_flag=(1 1)
+    debug "setting SSC to $SSC"
+    hd_seq_ssc=($(binarytobitvect $(leftpadstring $(dectobin $SSC) 14 '0')))
+    #    hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1) #set as a packet with only the DFH 
+    #hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1) #set as a packet with the DFH + 2 bytes 
+    dfh_spare1=(0)
+    dfh_pusver=(0 0 1)
+    dfh_spare2=(0 0 0 0)
+    dfh_service_type=(0 0 0 0 0 0 1 1)    # type = 3
+    dfh_service_subtype=(0 0 0 1 1 0 0 1) # subtype = 25
+    dfh_destination=(0 0 0 0 0 0 0 0) # destination ID 0 = Ground
+#     #spacecraft elapsed time
+#     dfh_scet_coarse_B1=(0 0 0 0 0 0 0 0)
+#     dfh_scet_coarse_B2=(0 0 0 0 0 0 0 0)
+#     dfh_scet_coarse_B3=(0 0 0 0 0 0 0 0)
+#     dfh_scet_coarse_B4=(0 0 0 0 0 0 0 0)
+#     dfh_scet_fine_B1=(0 0 0 0 0 0 0 0)
+#     dfh_scet_fine_B2=(0 0 0 0 0 0 0 0)
+      for((i=0; i<48; i++)); do dfh_scet[$i]=0; done
+      local lplv=$(get_df_len_bytes); local ldfhlv=$(get_dfh_len_bytes);local sdfl=$(( $lplv - $ldfhlv ))
+      local sdfl_bits=$(( $sdfl*8 ))
+      debug "data field length (BYTES) lplv  = $lplv"
+      debug "data field header length (BYTES) ldfhlv  = $ldfhlv"
+      debug "source data field length (BYTES) sdfl = $sdfl"
+      debug "source data field length (bits) sdfl_bits = $sdfl_bits"
+      set_ccsds_packet_length 12
+      sdf=( $(for i in {1..$sdfl_bits}; do echo -n "0 "; done) )
+      for((i=0; i<${#sdf[*]}; i++)); do sdf[$i]=$(randombits 1); done
+      dfh=( ${dfh_spare1[*]} ${dfh_pusver[*]} ${dfh_spare2[*]} ${dfh_service_type[*]} ${dfh_service_subtype[*]} ${dfh_destination[*]} ${dfh_scet[*]})
+      df=( ${dfh[*]} ${sdf[*]} )
+#      for((i=0; i<${#df[*]}; i++)); do sdf[$i]=$(randombits 1); done
+  fi
+}
+
+check_ccsds_pkt_compliance(){
+  # The Packet Primary Header length shall be of 6 BYTES
+  local hddim=${#hd[*]}; local hddimbytes=$(( ${#hd[*]}/8))
+  debug "header dimension is $hddim bit(s) or $hddimbytes  BYTES "
+  if [[ $hddimbytes -eq 6 ]]
+  then
+    debug "the header length is $hddimbytes BYTES [OK]"
+  else
+    setdebuglevel "ERR"
+    debug "this packet has a wrong header length !"
+    setdebuglevel "WARN"
+    debug "the error must be handled !"
+  fi
+
+  # checks on ccsds packet data field
+  local dfsize=${#df[*]}; local dfsizebytes=$(( $dfsize/8 ))
+  # The Packet Data Field (df) shall contain at least one octet
+  debug "0.1) the data field size is $dfsize bit(s) or $dfsizebytes BYTES "
+  debug "0.2) bitarray df() = ${df[*]} "
+  debug "0.3) bitarray dfh() = ${dfh[*]} "
+  debug "0.35) bitarray dfh() size = ${#dfh[*]} "
+  debug "0.4) bitarray sdf() = ${sdf[*]} "
+  debug "0.45) bitarray sdf() size = ${#sdf[*]} "
+  if [[ $dfsizebytes -lt 1 ]]
+  then
+    debug "this packet has a data field long only 1 BYTE"
+  else
+    debug "this packet has a data field long $dfsizebytes BYTES"
+  fi
+  # The Packet length field value must be >= 0
+  #         $(bitvectodec ${hd_pktlen[*]})
+  pktlenval=$( bitvectodec ${hd_pktlen[*]} )
+  debug "1) pktlenval = $pktlenval dfsizebytes = $dfsizebytes"
+  debug "1.1) {hd_pktlen[*]} = $(bitvectodec ${hd_pktlen[*]})"
+  debug "1.2 {hd_pktlen[*]} bitarray:  ${hd_pktlen[*]}"
+  if [[ $pktlenval -ge 0 ]]
+  then
+    debug "this packet has a data field long $(( $pktlenval + 1 )) BYTES"
+  else
+    debug "this packet has a data field long 1 BYTE"
+  fi
+  # The Packet length field shall contain the (legth(sdf) - 1) value
+  
+  debug "2) pktlenval = $pktlenval dfsizebytes = $dfsizebytes"
+  if [[ $pktlenval -eq $(( $dfsizebytes - 1 )) ]]
+  then
+    debug "the packet length value $pktlenval matches the real length of the value"
+  else
+    setdebuglevel "ERR"
+    debug "this packet has a data field with length different (from hd_pktlen + 1) !"
+    setdebuglevel "WARN"
+    debug "the inconsitency should be handled !"
+  fi
+
+  # The User Data Field (sdf) shall be mandatory if a Packet Secondary Header is not present, otherwise it is optional.
+  local dfhfval=${hd_dfhflag[0]} ## value of the data field header flag value (1 if dfh is present)
+  if [[ ${hd_dfhflag[0]} == 1 ]]
+  then
+    debug "a dfh shall be present"
+  else
+    debug "a dfh shall NOT be present"
+  fi
+  hd_dfhflag=(1)
+}
+
+check_dds_pkt_fields(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else 
+    totbits=0
+    ## dds header
+    debug "dds_hd_gentime dimension is ${#dds_hd_gentime[*]} bit(s)"; ((totbits+=${#dds_hd_gentime[*]}))
+    debug "dds_hd_pktlen dimension is ${#dds_hd_pktlen[*]} bit(s)"; ((totbits+=${#dds_hd_pktlen[*]}))
+    debug "dds_hd_gndstid dimension is ${#dds_hd_gndstid[*]} bit(s)"; ((totbits+=${#dds_hd_gndstid[*]}))
+    debug "dds_hd_vcid dimension is ${#dds_hd_vcid[*]} bit(s)"; ((totbits+=${#dds_hd_vcid[*]}))
+    debug "dds_hd_slesrvid dimension is ${#dds_hd_slesrvid[*]} bit(s)"; ((totbits+=${#dds_hd_slesrvid[*]}))
+    debug "dds_hd_tmqf dimension is ${#dds_hd_tmqf[*]} bit(s)"; ((totbits+=${#dds_hd_tmqf[*]}))
+    ## ccsds primary header
+    debug "hd_id_version_n dimension is ${#hd_id_version_n[*]} bit(s)"; ((totbits+=${#hd_id_version_n[*]}))
+    debug "hd_id_type dimension is ${#hd_id_type[*]} bit(s)"; ((totbits+=${#hd_id_type[*]}))
+    debug "hd_dfhflag dimension is ${#hd_dfhflag[*]}  bit(s) value is ${#hd_dfhflag[*]}"; ((totbits+=${#hd_dfhflag[*]}))
+    debug "hd_apid_pid dimension is ${#hd_apid_pid[*]} bit(s)"; #((totbits+=${#hd_apid_pid[*]}))
+    debug "hd_apid_cat dimension is ${#hd_apid_cat[*]} bit(s)"; #((totbits+=${#hd_apid_cat[*]}))
+    debug "hd_apid dimension is ${#hd_apid[*]}  bit(s) dec value is $(bitvectodec ${hd_apid[*]})"; ((totbits+=${#hd_apid[*]}))
+    debug "hd_seq_flag dimension is ${#hd_seq_flag[*]} bit(s)"; ((totbits+=${#hd_seq_flag[*]}))
+    debug "hd_seq_ssc dimension is ${#hd_seq_ssc[*]} dec value is $(bitvectodec ${hd_seq_ssc[*]})"; ((totbits+=${#hd_seq_ssc[*]}))
+    debug "hd_pktlen dimension is ${#hd_pktlen[*]} bit(s) value is $(bitvectodec ${hd_pktlen[*]})"; ((totbits+=${#hd_pktlen[*]}))
+    ## ccsds data field
+    ### ccsds data field
+    debug "dfh_spare1 dimension is ${#dfh_spare1[*]} bit(s)"; ((totbits+=${#dfh_spare1[*]}))
+    debug "dfh_pusver dimension is ${#dfh_pusver[*]} bit(s)"; ((totbits+=${#dfh_pusver[*]}))
+    debug "dfh_spare2 dimension is ${#dfh_spare2[*]} bit(s)"; ((totbits+=${#dfh_spare2[*]}))
+    debug "dfh_service_type dimension is ${#dfh_service_type[*]} bit(s)"; ((totbits+=${#dfh_service_type[*]}))
+    debug "dfh_service_subtype dimension is ${#dfh_service_subtype[*]} bit(s)"; ((totbits+=${#dfh_service_subtype[*]}))
+    debug "dfh_destination dimension is ${#dfh_destination[*]} bit(s)"; ((totbits+=${#dfh_destination[*]}))
+    debug "dfh_scet dimension is ${#dfh_scet[*]} bit(s)"; ((totbits+=${#dfh_scet[*]}))
+    ### ccsds source data field
+    ## final checks
+    debug "tot number of bits in the packet is $totbits"
+    debug "tot number of BYTES in the packet is $(( $totbits / 8))"
+  fi
+}
+
+# most important checks on the packet
+check_dds_pkt(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else 
+    totbits=0
+    ## dds header
+    debug "dds_hd_gentime dimension is ${#dds_hd_gentime[*]} bit(s)"; 
+    debug "dds_hd_pktlen dimension is ${#dds_hd_pktlen[*]} bit(s)";
+    # ((totbits+=${#dds_hd[*]}))
+    ((totbits+=144))
+    ## ccsds primary header
+    debug "hd_dfhflag dimension is ${#hd_dfhflag[*]}  bit(s) value is ${#hd_dfhflag[*]}"; ((totbits+=${#hd_dfhflag[*]}))
+    debug "hd_seq_ssc dimension is ${#hd_seq_ssc[*]} dec value is $(bitvectodec ${hd_seq_ssc[*]})"; ((totbits+=${#hd_seq_ssc[*]}))
+    debug "hd_pktlen dimension is ${#hd_pktlen[*]} bit(s) value is $(bitvectodec ${hd_pktlen[*]})"; ((totbits+=${#hd_pktlen[*]}))
+    ((totbits+=48))
+    ## ccsds data field
+    ### ccsds data field
+    debug "dfh dimension is ${#dfh_scet[*]} bit(s)"; ((totbits+=${#dfh[*]}))
+    debug "sdf dimension is ${#sdf[*]} bit(s)"; ((totbits+=${#sdf[*]}))
+    ### ccsds source data field
+    ## final checks
+    debug "tot number of bits in the packet is $totbits"
+    debug "tot number of BYTES in the packet is $(( $totbits / 8))"
+  fi
+}
+
+
+check_ccsds_pkt_fields(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else 
+    totbits=0
+    debug "hd_id_version_n dimension is ${#hd_id_version_n[*]}"; ((totbits+=${#hd_id_version_n[*]}))
+    debug "hd_id_type dimension is ${#hd_id_type[*]}"; ((totbits+=${#hd_id_type[*]}))
+    debug "hd_dfhflag dimension is ${#hd_dfhflag[*]} value is ${#hd_dfhflag[*]}"; ((totbits+=${#hd_dfhflag[*]}))
+    debug "hd_apid_pid dimension is ${#hd_apid_pid[*]}"; #((totbits+=${#hd_apid_pid[*]}))
+    debug "hd_apid_cat dimension is ${#hd_apid_cat[*]}"; #((totbits+=${#hd_apid_cat[*]}))
+    debug "hd_apid dimension is ${#hd_apid[*]} dec value is $(bitvectodec ${hd_apid[*]})"; ((totbits+=${#hd_apid[*]}))
+    debug "hd_seq_flag dimension is ${#hd_seq_flag[*]}"; ((totbits+=${#hd_seq_flag[*]}))
+    debug "hd_seq_ssc dimension is ${#hd_seq_ssc[*]} dec value is $(bitvectodec ${hd_seq_ssc[*]})"; ((totbits+=${#hd_seq_ssc[*]}))
+    debug "hd_pktlen dimension is ${#hd_pktlen[*]} dec value is $(bitvectodec ${hd_pktlen[*]})"; ((totbits+=${#hd_pktlen[*]}))
+    debug "dfh_spare1 dimension is ${#dfh_spare1[*]}"; ((totbits+=${#dfh_spare1[*]}))
+    debug "dfh_pusver dimension is ${#dfh_pusver[*]}"; ((totbits+=${#dfh_pusver[*]}))
+    debug "dfh_spare2 dimension is ${#dfh_spare2[*]}"; ((totbits+=${#dfh_spare2[*]}))
+    debug "dfh_service_type dimension is ${#dfh_service_type[*]}"; ((totbits+=${#dfh_service_type[*]}))
+    debug "dfh_service_subtype dimension is ${#dfh_service_subtype[*]}"; ((totbits+=${#dfh_service_subtype[*]}))
+    debug "dfh_destination dimension is ${#dfh_destination[*]}"; ((totbits+=${#dfh_destination[*]}))
+    debug "dfh_scet dimension is ${#dfh_scet[*]}"; ((totbits+=${#dfh_scet[*]}))
+    totbytes=$(( $totbits/8))
+    debug "tot number of bits of the packet is $totbits"
+    debug "tot number of BYTES of the packet is $totbytes"
+  fi
+}
+
+
+check_pkt_fields(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else 
+    totbits=0
+    debug "hd_id_version_n dimension is ${#hd_id_version_n[*]}"; ((totbits+=${#hd_id_version_n[*]}))
+    debug "hd_id_type dimension is ${#hd_id_type[*]}"; ((totbits+=${#hd_id_type[*]}))
+    debug "hd_dfhflag dimension is ${#hd_dfhflag[*]} value is ${#hd_dfhflag[*]}"; ((totbits+=${#hd_dfhflag[*]}))
+    debug "hd_apid_pid dimension is ${#hd_apid_pid[*]}"; #((totbits+=${#hd_apid_pid[*]}))
+    debug "hd_apid_cat dimension is ${#hd_apid_cat[*]}"; #((totbits+=${#hd_apid_cat[*]}))
+    debug "hd_apid dimension is ${#hd_apid[*]} dec value is $(bitvectodec ${hd_apid[*]})"; ((totbits+=${#hd_apid[*]}))
+    debug "hd_seq_flag dimension is ${#hd_seq_flag[*]}"; ((totbits+=${#hd_seq_flag[*]}))
+    debug "hd_seq_ssc dimension is ${#hd_seq_ssc[*]} dec value is $(bitvectodec ${hd_seq_ssc[*]})"; ((totbits+=${#hd_seq_ssc[*]}))
+    debug "hd_pktlen dimension is ${#hd_pktlen[*]} value is $(bitvectodec ${hd_pktlen[*]})"; ((totbits+=${#hd_pktlen[*]}))
+    debug "dfh_spare1 dimension is ${#dfh_spare1[*]}"; ((totbits+=${#dfh_spare1[*]}))
+    debug "dfh_pusver dimension is ${#dfh_pusver[*]}"; ((totbits+=${#dfh_pusver[*]}))
+    debug "dfh_spare2 dimension is ${#dfh_spare2[*]}"; ((totbits+=${#dfh_spare2[*]}))
+    debug "dfh_service_type dimension is ${#dfh_service_type[*]}"; ((totbits+=${#dfh_service_type[*]}))
+    debug "dfh_service_subtype dimension is ${#dfh_service_subtype[*]}"; ((totbits+=${#dfh_service_subtype[*]}))
+    debug "dfh_destination dimension is ${#dfh_destination[*]}"; ((totbits+=${#dfh_destination[*]}))
+    debug "dfh_scet dimension is ${#dfh_scet[*]}"; ((totbits+=${#dfh_scet[*]}))
+    debug "tot number of bits of the packet is $totbits"
+  fi
+}
+
+set_std_time_pkt(){
+:
+}
+
+set_idle_packet(){
+:
+}
+
+
+set_dfh_scet_coarse_hex(){
+  dfh_scet_coarse=( $(hextobitvec $@) )
+}
+
+set_dfh_scet_fine_hex(){
+  dfh_scet_fine=( $(hextobitvec $@) )
+}
+
+# returns the packet time as numerical value
+# 4294967296.65535
+# SSSSSSSSSS.ddddd
+get_packet_time(){ 
+  secs=( bitvectodec ${dfh_scet_coarse[*]} )
+  subsecs=( bitvectodec ${dfh_scet_fine[*]})
+  echo "$secs.$subsecs"
+}
+
+#gives packet time seconds
+get_packet_time_secs(){
+  bitvectodec ${dfh_scet_coarse[*]}
+}
+
+#gives packet time subseconds
+get_packet_time_subsecs(){
+  bitvectodec ${dfh_scet_fine[*]}
+}
+
+print_dds_header(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else
+    debug "dds_hd_gentime size is ${#dds_hd_gentime[*]}, vals $(for((i=0; i<${#dds_hd_gentime[*]}; i++)); do printf "%d" ${dds_hd_gentime[$i]}; done) "; 
+    for((i=0; i<${#dds_hd_gentime[*]}; i++)); do printf "%d" ${dds_hd_gentime[$i]}; done
+    debug "dds_hd_pktlen size is ${#dds_hd_pktlen[*]}, vals $(for((i=0; i<${#dds_hd_pktlen[*]}; i++)); do printf "%d" ${dds_hd_pktlen[$i]}; done) ";
+    for((i=0; i<${#dds_hd_pktlen[*]}; i++)); do printf "%d" ${dds_hd_pktlen[$i]}; done
+    debug "dds_hd_gndstid size is ${#dds_hd_gndstid[*]}, vals $(for((i=0; i<${#dds_hd_gndstid[*]}; i++)); do printf "%d" ${dds_hd_gndstid[$i]}; done) ";
+    for((i=0; i<${#dds_hd_gndstid[*]}; i++)); do printf "%d" ${dds_hd_gndstid[$i]}; done
+    debug "dds_hd_vcid size is ${#dds_hd_vcid[*]}, vals $(for((i=0; i<${#dds_hd_vcid[*]}; i++)); do printf "%d" ${dds_hd_vcid[$i]}; done) ";
+    for((i=0; i<${#dds_hd_vcid[*]}; i++)); do printf "%d" ${dds_hd_vcid[$i]}; done
+    debug "dds_hd_slesrvid size is ${#dds_hd_slesrvid[*]}, vals $(for((i=0; i<${#dds_hd_slesrvid[*]}; i++)); do printf "%d" ${dds_hd_slesrvid[$i]}; done) ";
+    for((i=0; i<${#dds_hd_slesrvid[*]}; i++)); do printf "%d" ${dds_hd_slesrvid[$i]}; done
+    debug "dds_hd_sletm_qf size is ${#dds_hd_tmqf[*]}, vals $(for((i=0; i<${#dds_hd_tmqf[*]}; i++)); do printf "%d" ${dds_hd_tmqf[$i]}; done) ";
+    for((i=0; i<${#dds_hd_tmqf[*]}; i++)); do printf "%d" ${dds_hd_tmqf[$i]}; done
+  fi
+}
+
+
+print_ccsds_header(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else  
+    debug "##################################"
+    debug "### STARTING print_ccsds_header() "
+    debug "##################################"
+    # packet header 48 bits (= 6 BYTES) start
+    debug "{#hd_id_version_n[*]} size is ${#hd_id_version_n[*]} values $(for((i=0; i<${#hd_id_version_n[*]}; i++)); do printf "%d" ${hd_id_version_n[$i]}; done) "
+    for((i=0; i<${#hd_id_version_n[*]}; i++)); do printf "%d" ${hd_id_version_n[$i]}; done
+    debug "{#hd_id_type[*]} size is ${#hd_id_type[*]} values $(for((i=0; i<${#hd_id_type[*]}; i++)); do printf "%d" ${hd_id_type[$i]}; done) "
+    for((i=0; i<${#hd_id_type[*]}; i++)); do printf "%d" ${hd_id_type[$i]}; done
+    debug "{#hd_dfhflag[*]} size is ${#hd_dfhflag[*]} values $(for((i=0; i<${#hd_dfhflag[*]}; i++)); do printf "%d" ${hd_dfhflag[$i]}; done) "
+    for((i=0; i<${#hd_dfhflag[*]}; i++)); do printf "%d" ${hd_dfhflag[$i]}; done
+    debug "{#hd_apid_pid[*]} size is ${#hd_apid_pid[*]} values $(for((i=0; i<${#hd_apid_pid[*]}; i++)); do printf "%d" ${hd_apid_pid[$i]}; done) "
+    for((i=0; i<${#hd_apid_pid[*]}; i++)); do printf "%d" ${hd_apid_pid[$i]}; done
+    debug "{#hd_apid_cat[*]} size is ${#hd_apid_cat[*]} values $(for((i=0; i<${#hd_apid_cat[*]}; i++)); do printf "%d" ${hd_apid_cat[$i]}; done) "
+    for((i=0; i<${#hd_apid_cat[*]}; i++)); do printf "%d" ${hd_apid_cat[$i]}; done
+    #for((i=0; i<${#hd_apid[*]}; i++)); do printf "%d" ${hd_apid[$i]}; done
+    debug "{#hd_seq_flag[*]} size is ${#hd_seq_flag[*]} values $(for((i=0; i<${#hd_seq_flag[*]}; i++)); do printf "%d" ${hd_seq_flag[$i]}; done) "
+    for((i=0; i<${#hd_seq_flag[*]}; i++)); do printf "%d" ${hd_seq_flag[$i]}; done
+    debug "{#hd_seq_ssc[*]} size is ${#hd_seq_ssc[*]} values $(for((i=0; i<${#hd_seq_ssc[*]}; i++)); do printf "%d" ${hd_seq_ssc[$i]}; done) "
+    for((i=0; i<${#hd_seq_ssc[*]}; i++)); do printf "%d" ${hd_seq_ssc[$i]}; done
+    debug "{#hd_pktlen[*]} size is ${#hd_pktlen[*]} values $(for((i=0; i<${#hd_pktlen[*]}; i++)); do printf "%d" ${hd_pktlen[$i]}; done) "
+    for((i=0; i<${#hd_pktlen[*]}; i++)); do printf "%d" ${hd_pktlen[$i]}; done
+    # packet header 48 bits (= 6 bytes) end
+    debug " "
+    debug "##################################"
+    debug "###  print_ccsds_header() ENDED"
+    debug "##################################"
+  fi
+}
+
+print_ccsds_packet(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else  
+    debug "##################################"
+    debug "### STARTING print_ccsds_packet() "
+    debug "##################################"
+    # packet header 48 bits (= 6 BYTES) start
+    debug "{#hd_id_version_n[*]} size is ${#hd_id_version_n[*]} values $(for((i=0; i<${#hd_id_version_n[*]}; i++)); do printf "%d" ${hd_id_version_n[$i]}; done)"
+    for((i=0; i<${#hd_id_version_n[*]}; i++)); do printf "%d" ${hd_id_version_n[$i]}; done
+    debug "{#hd_id_type[*]} size is ${#hd_id_type[*]} values $(for((i=0; i<${#hd_id_type[*]}; i++)); do printf "%d" ${hd_id_type[$i]}; done)"
+    for((i=0; i<${#hd_id_type[*]}; i++)); do printf "%d" ${hd_id_type[$i]}; done
+    debug "{#hd_dfhflag[*]} size is ${#hd_dfhflag[*]} values $(for((i=0; i<${#hd_dfhflag[*]}; i++)); do printf "%d" ${hd_dfhflag[$i]}; done)"
+    for((i=0; i<${#hd_dfhflag[*]}; i++)); do printf "%d" ${hd_dfhflag[$i]}; done
+    debug "{#hd_apid_pid[*]} size is ${#hd_apid_pid[*]} values $(for((i=0; i<${#hd_apid_pid[*]}; i++)); do printf "%d" ${hd_apid_pid[$i]}; done)"
+    for((i=0; i<${#hd_apid_pid[*]}; i++)); do printf "%d" ${hd_apid_pid[$i]}; done
+    debug "{#hd_apid_cat[*]} size is ${#hd_apid_cat[*]} values $(for((i=0; i<${#hd_apid_cat[*]}; i++)); do printf "%d" ${hd_apid_cat[$i]}; done)"
+    for((i=0; i<${#hd_apid_cat[*]}; i++)); do printf "%d" ${hd_apid_cat[$i]}; done
+    #for((i=0; i<${#hd_apid[*]}; i++)); do printf "%d" ${hd_apid[$i]}; done
+    debug "{#hd_seq_flag[*]} size is ${#hd_seq_flag[*]} values $(for((i=0; i<${#hd_seq_flag[*]}; i++)); do printf "%d" ${hd_seq_flag[$i]}; done)"
+    for((i=0; i<${#hd_seq_flag[*]}; i++)); do printf "%d" ${hd_seq_flag[$i]}; done
+    debug "{#hd_seq_ssc[*]} size is ${#hd_seq_ssc[*]} values $(for((i=0; i<${#hd_seq_ssc[*]}; i++)); do printf "%d" ${hd_seq_ssc[$i]}; done)"
+    for((i=0; i<${#hd_seq_ssc[*]}; i++)); do printf "%d" ${hd_seq_ssc[$i]}; done
+    debug "{#hd_pktlen[*]} size is ${#hd_pktlen[*]} values $(for((i=0; i<${#hd_pktlen[*]}; i++)); do printf "%d" ${hd_pktlen[$i]}; done)"
+    for((i=0; i<${#hd_pktlen[*]}; i++)); do printf "%d" ${hd_pktlen[$i]}; done
+    # packet header 48 bits (= 6 bytes) end
+    # data field header BYTE 1 begin
+     for((i=0; i<${#dfh_spare1[*]}; i++)); do printf "%d" ${dfh_spare1[$i]}; done
+     for((i=0; i<${#dfh_pusver[*]}; i++)); do printf "%d" ${dfh_pusver[$i]}; done
+     for((i=0; i<${#dfh_spare2[*]}; i++)); do printf "%d" ${dfh_spare2[$i]}; done
+    # data field header BYTE 1 end
+    debug "DFH B1 size is 8 bits, vals \
+    $(for((i=0; i<${#dfh_spare1[*]}; i++));do printf "%d" ${dfh_spare1[i]} ; done)\
+    $(for((i=0; i<${#dfh_pusver[*]}; i++));do printf "%d" ${dfh_pusver[i]} ; done)\
+    $(for((i=0; i<${#dfh_spare2[*]}; i++));do printf "%d" ${dfh_spare2[i]} ; done)\
+    $(printf "\n") "
+     for((i=0; i<${#dfh_service_type[*]}; i++)); do printf "%d" ${dfh_service_type[$i]}; done
+     debug "TYPE size is 8 bits, vals $(for((i=0; i<${#dfh_service_type[*]}; i++));do printf "%d" ${dfh_service_type[i]} ; done) $(printf "\n")"
+     for((i=0; i<${#dfh_service_subtype[*]}; i++)); do printf "%d" ${dfh_service_subtype[$i]}; done
+     debug "SUBTYPE size is 8 bits, vals $(for((i=0; i<${#dfh_service_subtype[*]}; i++));do printf "%d" ${dfh_service_subtype[i]} ; done) $(printf "\n")"
+     for((i=0; i<${#dfh_destination[*]}; i++)); do printf "%d" ${dfh_destination[$i]}; done
+     debug "DEST size is 8 bits, vals $(for((i=0; i<${#dfh_destination[*]}; i++));do printf "%d" ${dfh_dfh_destination[i]} ; done) $(printf "\n")"
+#      for((i=0; i<${#dfh_scet_coarse_B1[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B1[$i]}; done
+#      for((i=0; i<${#dfh_scet_coarse_B2[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B2[$i]}; done
+#      for((i=0; i<${#dfh_scet_coarse_B3[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B3[$i]}; done
+#      for((i=0; i<${#dfh_scet_coarse_B4[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B4[$i]}; done
+#      for((i=0; i<${#dfh_scet_fine_B1[*]}; i++)); do printf "%d" ${dfh_scet_fine_B1[$i]}; done
+#      for((i=0; i<${#dfh_scet_fine_B2[*]}; i++)); do printf "%d" ${dfh_scet_fine_B2[$i]}; done
+    # data field header 80 bits (= 10 bytes) end
+     for((i=0; i<${#dfh_scet[*]}; i++)); do printf "%d" ${dfh_scet[$i]}; done
+     for((i=0; i<${#sdf[*]}; i++)); do printf "%d" ${sdf[$i]}; done
+     #for((i=0; i<${#df[*]}; i++)); do printf "%d" ${df[$i]}; done
+    debug " "
+    debug "##################################"
+    debug "###  print_ccsds_packet() ENDED"
+    debug "##################################"
+  fi
+}
+
+print_ccsds_dfh(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} (no arguments)"
+    return $E_BADARGS
+  else  
+    debug "##################################"
+    debug "### STARTING print_ccsds_dfh() "
+    debug "##################################"
+    # data field header BYTE 1 begin
+    debug "DFH B1 size is 8 bits, vals \
+    $(for((i=0; i<${#dfh_spare1[*]}; i++));do printf "%d" ${dfh_spare1[i]} ; done)\
+    $(for((i=0; i<${#dfh_pusver[*]}; i++));do printf "%d" ${dfh_pusver[i]} ; done)\
+    $(for((i=0; i<${#dfh_spare2[*]}; i++));do printf "%d" ${dfh_spare2[i]} ; done)\
+    $(printf "\n") "
+     for((i=0; i<${#dfh_spare1[*]}; i++)); do printf "%d" ${dfh_spare1[$i]}; done
+     for((i=0; i<${#dfh_pusver[*]}; i++)); do printf "%d" ${dfh_pusver[$i]}; done
+     for((i=0; i<${#dfh_spare2[*]}; i++)); do printf "%d" ${dfh_spare2[$i]}; done
+    # data field header BYTE 1 end
+     for((i=0; i<${#dfh_service_type[*]}; i++)); do printf "%d" ${dfh_service_type[$i]}; done
+     debug "TYPE size is 8 bits, vals $(for((i=0; i<${#dfh_service_type[*]}; i++));do printf "%d" ${dfh_service_type[i]} ; done) $(printf "\n")"
+     for((i=0; i<${#dfh_service_subtype[*]}; i++)); do printf "%d" ${dfh_service_subtype[$i]}; done
+     debug "SUBTYPE size is 8 bits, vals $(for((i=0; i<${#dfh_service_subtype[*]}; i++));do printf "%d" ${dfh_service_subtype[i]} ; done) $(printf "\n")"
+     for((i=0; i<${#dfh_destination[*]}; i++)); do printf "%d" ${dfh_destination[$i]}; done
+     debug "DEST size is 8 bits, vals $(for((i=0; i<${#dfh_destination[*]}; i++));do printf "%d" ${dfh_dfh_destination[i]} ; done) $(printf "\n")"
+
+    #     for((i=0; i<${#dfh_scet_coarse_B[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B[$i]}; done
+
+     debug "dfh_scet_coarse_B1 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_coarse_B1[*]}; i++));do printf "%d" ${dfh_scet_coarse_B1[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_coarse_B1[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B1[$i]}; done
+     debug "dfh_scet_coarse_B2 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_coarse_B2[*]}; i++));do printf "%d" ${dfh_scet_coarse_B2[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_coarse_B2[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B2[$i]}; done
+     debug "dfh_scet_coarse_B3 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_coarse_B3[*]}; i++));do printf "%d" ${dfh_scet_coarse_B3[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_coarse_B3[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B3[$i]}; done
+     debug "dfh_scet_coarse_B4 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_coarse_B4[*]}; i++));do printf "%d" ${dfh_scet_coarse_B4[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_coarse_B4[*]}; i++)); do printf "%d" ${dfh_scet_coarse_B4[$i]}; done
+     debug "dfh_scet_fine_B1 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_fine_B1[*]}; i++));do printf "%d" ${dfh_scet_fine_B1[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_fine_B1[*]}; i++)); do printf "%d" ${dfh_scet_fine_B1[$i]}; done
+     debug "dfh_scet_fine_B2 size is 8 bits, vals $(for((i=0; i<${#dfh_scet_fine_B2[*]}; i++));do printf "%d" ${dfh_scet_fine_B2[i]} ; done) $(printf "\n")"
+      for((i=0; i<${#dfh_scet_fine_B2[*]}; i++)); do printf "%d" ${dfh_scet_fine_B2[$i]}; done
+     # data field header 80 bits (= 10 bytes) end
+#     for((i=0; i<${#dfh_scet[*]}; i++)); do printf "%d" ${dfh_scet[$i]}; done
+    debug " "
+    debug "##################################"
+    debug "###  print_ccsds_dfh() ENDED"
+    debug "##################################"
+  fi
+}
+
+
+print_ccsds_sdf(){
+  debug "##################################"
+  debug "### STARTING print_ccsds_dfh() "
+  debug "##################################"
+  rbs=$(echo $(randombits 16))
+  debug "rbs = $rbs"
+  sdf=( $(eval echo $rbs) )
+  debug "sdf size is ${#sdf[*]} bits, vals $(for((i=0; i<${#sdf[*]}; i++));do printf "%d" ${sdf[i]} ; done) $(printf "\n")"
+  for((i=0; i<${#sdf[*]}; i++)); do printf "%d" ${sdf[$i]}; done
+  debug " "
+  debug "##################################"
+  debug "###  print_ccsds_sdf() ENDED"
+  debug "##################################"
+}
+
+print_ccsds_pkt_hexstr(){
+  SSC=20;
+  unset dfh; unset df; unset sdf
+  clean_current_packet
+  #set_ccsds_packet
+  set_ccsds_header
+  #hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) #set as a packet with the DFH + 1 bytes
+  dfh_service_type=(1 1 0 0 0 0 0 0)
+  dfh_service_subtype=(1 0 1 1 0 0 0 0)
+
+  a=$(print_ccsds_header); 
+  xs=$(bintohex $a); 
+  ad=$(( $(echo "$a" | wc -c ) -1 ));
+  hds=$(eval leftpadstring $xs $(( $ad/4 )) '0'); 
+  pr=$( leftpadstring $( randombits 88 | sed -e "s/ //g") 88 '0'); 
+  pxs=$(bintohex $pr ); 
+  psd=$(( $(echo "$ps" | wc -c ) -1 ));
+  ps=$(eval leftpadstring $pxs $(( $psd/4 )) '0');
+  echo "$hds""$ps"
+  debug "pxs=$pxs";debug "psd=$psd";debug "pr = $pr"
+}
+
+
+print_ccsds_packet2(){
+  print_ccsds_header
+  print_ccsds_dfh
+  print_ccsds_sdf
+}
+
+
+print_dds_packet(){
+  print_dds_header
+  print_ccsds_packet
+}
+
+print_dds_packet2(){
+  print_dds_header
+  print_ccsds_packet2
+}
+
+
+print_packet(){
+  print_ccsds_packet
+}
+
+dump_ccsds_header(){ # dumps the binary values of the packet on the stdout
+  bs=$(print_ccsds_header); xs=$(bintohex $bs);bv=($(bitstringtobitvec $bs))
+  debug "dumping bitstring $bs that has size ${#bs}"
+  debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+  debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+  for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done
+}
+
+
+dump_ccsds_packet2(){ # dumps the binary values of the packet on the stdout
+  #wz=$(print_ccsds_packet2);bs=$(echo $wz |  sed -e "s/ //g")
+  bs=""; xs="";bv=( $( for i in {1..144} ; do echo -n "0 "; done) )
+  bs=$(print_ccsds_packet2);#bs=$(echo $wz |  sed -e "s/ //g")
+  #xs=$(bintohex $bs);bv=($(bitstringtobitvec $bs))
+  debug "dumping bitstring $bs that has size ${#bs}"
+  debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+  debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+  for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done
+}
+
+dump_ccsds_packet(){ # dumps the binary values of the packet on the stdout
+  bs=$(print_ccsds_packet); xs=$(bintohex $bs);bv=($(bitstringtobitvec $bs))
+  debug "dumping bitstring $bs that has size ${#bs}"
+  debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+  debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+  for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done
+}
+
+# dump_dds_packet(){ # dumps the binary values of the packet on the stdout
+#   bs=""; xs="";bv=( $(for i in {1..144} ; do echo -n "0 "; done) )
+#   bs=$(print_dds_packet); xs=$(bintohex $bs);bv=($(bitstringtobitvec $bs))
+#   debug "dumping bitstring $bs that has size ${#bs}"
+#   debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+#   debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+#   for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done 
+# }
+
+dump_packet(){
+  dump_ccsds_packet
+}
+
+
+dump_dds_packet_file(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <npackets>"
+    return $E_BADARGS
+  else
+    outfext="dds"
+    a=$1; fn="out"$a"pkts_"$(shortdate)".$outfext"; lfn=debug_pkts_"out"$a"pkts_"$(shortdate)".log"
+    for t in $(eval echo {1..$a}); do 
+      set_default_dds_packet
+      check_dds_pkt_fields
+      print_dds_packet
+      #      dump_dds_packet >> $fn; 
+      SSC=$(( $SSC+1 ))
+      debug "SSC = $SSC"
+    done
+  fi
+}
+
+dump_dds_packet_file2(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <npackets>"
+    return $E_BADARGS
+  else
+    outfext="dds"
+    a=$1; fn="out"$a"pkts_"$(shortdate)".$outfext"; lfn=debug_pkts_"out"$a"pkts_"$(shortdate)".log"
+    for t in $(eval echo {1..$a}); do 
+      set_ccsds_header
+      set_ccsds_packet
+      check_ccsds_pkt_fields
+      check_dds_pkt_fields
+      check_ccsds_pkt_fields
+      #print_dds_packet
+      dump_dds_packet2 >> $fn; 
+      SSC=$(( $SSC+1 ))
+      debug "SSC = $SSC"
+    done
+  fi
+}
+
+
+dump_ccsds_packet_file2(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <npackets>"
+    return $E_BADARGS
+  else
+    outfext="ccsds"
+    a=$1; fn="out"$a"pkts_"$(shortdate)".$outfext"; lfn=debug_pkts_"out"$a"pkts_"$(shortdate)".log"
+    for t in $(eval echo {1..$a}); do 
+      set_default_ccsds_packet
+      check_ccsds_pkt_fields
+      print_ccsds_packet
+      dump_ccsds_packet >> $fn; 
+      SSC=$(( $SSC+1 ))
+      debug "SSC = $SSC"
+    done
+  fi
+}
+
+
+dump_dds_packet2(){
+  bs=$(print_dds_packet2); xs=$(bintohex $bs);bv=($(bitstringtobitvec $bs))
+  debug "dumping bitstring $bs that has size ${#bs}"
+  debug "bitstring $bs";debug "bitvector ${bv[*]} has size ${#bv[*]}";debug "hexstring $xs"
+  debug "producing a binary output of $(((${#bs} + 7)/8)) bytes"
+  for b in $(bitvectobytes ${bv[*]}); do bytetobin $b; done 
+}
+
+
+dump_packet_file(){
+  dump_ccsds_packet_file
+}
+
+
+
+dump_ccsds_packet_file(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: ${FUNCNAME[0]} <npackets>"
+    return $E_BADARGS
+  else
+    outfext="ccsds"
+    a=$1; fn="out"$a"pkts_"$(shortdate)".$outfext"
+    for t in $(eval echo {1..$a}); do 
+      set_default_packet; 
+      check_pkt_fields;
+      dump_ccsds_packet >> $fn; 
+    done
+  fi
+}
+
+getAPID(){
+  ARG=2
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getAPID <PID> <CAT> (decimal integers)"
+    return $E_BADARGS
+  else
+    PID=$1
+    CAT=$2
+    binpid=$(bc -l <<< "obase=2; $1")
+    bincat=$(bc -l <<< "obase=2; $2")
+#    echo "PID = $binpid CAT = $bincat"; 
+    bpsh=$(($PID<<4))
+    binpsh=$(bc -l <<<"obase=2; $bpsh")
+    APID=$(( $bpsh + $CAT ))
+#    echo "adding $binpsh + $bincat"
+  fi
+  binapid=$(bc -l <<<"obase=2; $APID")
+  echo $APID
+#  echo "bin APID = "$binapid
+  return 0
+}
+
+getSSC(){
+  ARG=0
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSSC"
+    return $E_BADARGS
+  else
+    :
+#    echo "adding $binpsh + $bincat"
+  fi
+  binapid=$(bc -l <<<"obase=2; $APID")
+  echo ${hd_seq_ssc[*]}
+  #  echo "bin SSC = "$binapid
+  return 0
+}
+
+get_dds_hd_length(){ #returns the length of the dds header
+  echo 18
+}
+
+
+
+#packets generation example in test1 for nasa packet3 lib based scripts
+#squirt -i firstpackets.ccsds -e '"packetnumber=$packet apid=%apid sequence=%sequence lenght=%length\n"; filter: (%sequence > 3) && (%sequence < 7) ;'> out.ccsds
+#hexdump -v -e '18/1 "%02X " "\n"' out.ccsds

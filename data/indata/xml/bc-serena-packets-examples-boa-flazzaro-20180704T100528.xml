@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ResponsePart>
+    <Response>
+        <PktRawResponse>
+            <PktRawResponseElement packetID="1">
+                <Packet>000000005a0196be000d7d745a0196c000016bd100000001033000cb00000090182503e8000006db0000d6d800000000033000000000000b0001000000300000ffffffffff100644000003190e44c000003d1003190080000000000000010001000000000000000000000000000022e301000000791a000000000000000000000648030e00080000092b0a5504be0648</Packet>
+            </PktRawResponseElement>
+        </PktRawResponse>
+    </Response>
+</ResponsePart>

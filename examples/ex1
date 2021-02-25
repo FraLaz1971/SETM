@@ -1,0 +1,2 @@
+#!/bin/bash
+echo "ciccio" >&2 

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<HK>
+<HKsample>
+<Time>
+0
+</Time>
+<Temp1>
+1
+</Temp1>
+<Temp2>
+2
+</Temp2>
+</HKsample>
+<HKsample>
+<Time>
+10
+</Time>
+<Temp1>
+11
+</Temp1>
+<Temp2>
+12
+</Temp2>
+</HKsample>
+<BR/>
+</HK>

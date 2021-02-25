@@ -1,0 +1,13 @@
+2019-08-20T13:45:46.025582726|squirrel|main|INFO|header version and identification section bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+2019-08-20T13:45:46.027485149|squirrel|main|INFO|header sequence control section bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+2019-08-20T13:45:46.031800304|squirrel|main|INFO|header packet length bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+2019-08-20T13:45:46.095371813|squirrel|check_ccsds_pkt_compliance|INFO|header dimension is 48 bit(s) or 6  BYTES 
+2019-08-20T13:45:46.098581638|squirrel|check_ccsds_pkt_compliance|INFO|the header length is 6 BYTES [OK]
+2019-08-20T13:45:46.100331443|squirrel|check_ccsds_pkt_compliance|INFO|the data field size is 96 bit(s) or 12 BYTES 
+2019-08-20T13:45:46.101894560|squirrel|check_ccsds_pkt_compliance|INFO|this packet has a data field long 12 BYTES
+2019-08-20T13:45:46.110283950|squirrel|check_ccsds_pkt_compliance|INFO|1) pktlenval = 98304 dfsizebytes = 12
+2019-08-20T13:45:46.112028750|squirrel|check_ccsds_pkt_compliance|INFO|this packet has a data field long 98304 BYTES
+2019-08-20T13:45:46.123809204|squirrel|check_ccsds_pkt_compliance|INFO|2) pktlenval = 98304 dfsizebytes = 12
+2019-08-20T13:45:46.125810194|squirrel|check_ccsds_pkt_compliance|ERR|this packet has a data field with length different (from hd_pktlen + 1) !
+2019-08-20T13:45:46.127919287|squirrel|check_ccsds_pkt_compliance|WARN|the inconsitency should be handled !
+2019-08-20T13:45:46.131679244|squirrel|check_ccsds_pkt_compliance|INFO|a dfh shall NOT be present

@@ -1,0 +1,39 @@
+#!/bin/bash
+## this program converts packet files in the dds binary format to the ccsds raw source binary format 
+# (without any additional header). it takes as input the input dds file and the number of packets to process
+# if there are no packets to process it stops
+
+. lib/srn_tm_lib
+. lib/bbe_lib
+
+DEBUG=1 # when in debug doesn't remove temp files
+if [[ $# != 2 ]]
+then
+  debug "usage: $(basename $0) <infile.dds> <npackets>"
+  exit $E_BADARGS
+else
+  infile="$1"
+  t="$2"
+  po=(0) #array of current packet n. i offset depending on packet length
+  cpl=(0) #array containing the length hex value for the given packet i
+  dcpl=(0) #array containing the length dec value for the given packet i
+  for i in $(eval echo {0..$(($t-1))} )
+  do
+      cpl[$i]=0
+      [[ "$DEBUG" == "1" ]] && debug "current packet n. $i offset = ${po[$i]}"
+      [[ "$DEBUG" == "1" ]] && debug "iteration $i po = ${po[$i]} infile = $infile"
+      cpl[$i]=$(get_dds_hd_pktlen "$infile" ${po[$i]})
+      [[ "$DEBUG" == "1" ]] && debug "current packet n. $i 1) cpl = ${cpl[$i]} (hex)"
+      #cpl=$(bbe -s -b "8:4" "$1" | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g")
+      dcpl[$i]=$( hextodec $cpl )
+      #hextodec $cpl
+      [[ "$DEBUG" == "1" ]] && debug "current packet n. $i length = ${dcpl[$i]} (dec)"
+      bd=$( eval echo  "$(( ${po[$i]}  )):$(( ${po[$i]} + ${dcpl[$i]} ))" )
+      debug "bd is $bd"
+      bbe -s -b $bd $infile
+      # update packet offset
+      po[i]=$((${po[$i]} + ${dcpl[$i]} + 18 )); 
+      [[ "$DEBUG" == "1" ]] && debug "next packet n. $i offset = ${po[$i]}"
+  done
+fi
+

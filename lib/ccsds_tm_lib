@@ -1,0 +1,331 @@
+#!/bin/bash
+#/** 
+#* @file el_tm_lib
+#* @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+#* @copyright 2019 GPL 2 free software license
+#* @brief library to handle bepicolombo payload instrument flight telemetry data 
+#* @url http://sci.esa.int/bepicolombo
+#* library handling scos2000 header(s) data fields in the TM packets
+#*
+#**/
+# gets the ELENA 210304 time marker event seconds part1 given the hex value 
+getSecPart1(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSecPart1 <hexword>"
+    return $E_BADARGS
+  else 
+  #echo "bin input value" $(hextobin $1)
+    dhexword=$(hextodec $1)
+#  echo "first operand dec " $dsubfield
+#  echo "first operand bin " $(hextobin $1)
+#  echo "second operand bin " "0011111111111111"  
+#  echo "second operand hex " $( bintohex "0011111111111111" ) 
+#  echo "second operand dec " $( bintodec "0011111111111111" ) 
+    dmask=$( bintodec "0011111111111111" )
+    dsubfield=$(( $dhexword & $dmask ))
+#  bsubfield=$(dectobin $dsubfield)
+#  echo "extracted dec subfield " $dsubfield
+#  echo "extracted bin subfield " $bsubfield
+    ssubfield=$(($dsubfield << 2))
+#    echo "shifted subfield " $(dectobin $ssubfield)
+    printf "%016d\n" $(dectobin $ssubfield)
+  fi
+}
+
+getSecPart2(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSecPart2 <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "input hexword " $1
+    dhexword=$(hextodec $1)
+#   echo "first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+    dmask=$( bintodec "1100000000000000" )
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( ($dhexword & $dmask) >> 14))
+#   printf -v j "%16d" $dsubfield
+#   echo "dec result" $dsubfield
+#   echo "bin result " $(dectobin $dsubfield)
+#    echo "result " $(dectobin $dsubfield)
+#    printf "%016d\n" $(dectobin $dsubfield)
+
+#   echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+fi
+}
+
+getSubSecs(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getSubSecs <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "input hexword " $1
+    dhexword=$(hextodec $1)
+#   echo "first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+#    dmask=$( bintodec "1100000000000000" )
+    dmask=$( bintodec "0011111111111110" )
+
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( ($dhexword & $dmask) << 2))
+#   printf -v j "%16d" $dsubfield
+#   echo "dec result" $dsubfield
+#   echo "bin result " $(dectobin $dsubfield)
+#    echo "result " $(dectobin $dsubfield)
+#    printf "%016d\n" $(dectobin $dsubfield)
+
+#    echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+
+  fi
+}
+
+getEvtFlag(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getEvtFlag <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "getEvtFlag() input hexword " $1
+    dhexword=$(hextodec $1)
+#    echo "getEvtFlag() first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+#   printf "%016d\n" $(hextobin $1)
+#   echo "first operand dec " $( hextodec $1 ) 
+#    dmask=$( bintodec "1100000000000000" )
+     dmask=$( bintodec "0000000000000001" )
+#   echo "second operand bin " "1100000000000000"  
+#   echo "second operand hex " $( bintohex "1100000000000000" ) 
+#   echo "second operand dec " $dmask 
+#    dsubfield=$(( $dhexword & $dmask >> 14))
+    dsubfield=$(( $dhexword & $dmask ))
+#   echo "getEvtFlag() dec result" $dsubfield
+
+#    echo $(dectobin $j)
+    printf "%016d\n" $(dectobin $dsubfield)
+  fi
+}
+
+
+decodeTimeMarkevt(){
+  ARG=2
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeTimeMarkevt <hexword1> <hexword2>"
+    return $E_BADARGS
+  else 
+    unset p1 p2 ds
+    p1=$(getSecPart1 $1)
+    p2=$(getSecPart2 $2)
+#    printf "decodeTimeMarkevt() input word 1 (hex) %016d\n" $(hextobin $1)
+    #echo $p1
+#    printf "decodeTimeMarkevt() input word 2 (hex) %016d\n" $(hextobin $2)
+    #echo $p2
+    ds=$(( $(bintodec $p1) + $(bintodec $p2) ))
+#    printf "decodeTimeMarkevt() seconds (bin) %016d\n" $(dectobin $ds)
+#    printf "decodeTimeMarkevt() seconds (dec) %d\n" $ds
+    ss=$(getSubSecs $2)
+    #printf "time(s)\ttime (subs) \n"
+    printf "%d\t%d\n" $ds $ss
+  fi
+}
+
+getRealEvtMark(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getRealEvtMark <hexword>"
+    return $E_BADARGS
+  else 
+#    echo "getRealEvtMark() input hexword " $1
+    dhexword=$(hextodec $1)
+#    echo "getRealEvtMark() first operand bin " $(printf "%016d\n" $( hextobin $1 ))
+     dmask=$( bintodec "0000000000111111" )
+    dsubfield=$(( $dhexword & $dmask ))
+#   echo "getRealEvtMark() dec result" $dsubfield
+    printf "%016d\n" $(dectobin $dsubfield)
+  fi
+}
+
+getREHSCOld(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getREHSCOld <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask LSB MSB hsc
+
+      #echo "getREHSCOld() input word (hex) "$1
+      bw=$(hextobin $1)
+#      echo "getREHSC() input word (bin) "$bw
+      dw=$(hextodec $1)
+      # extract high speed counter LSB (25 ns step)
+      dmask=$(bintodec "1111111100000000")
+      LSB=$((($dw & dmask) >> 8))
+#      printf "getREHSC() LSB (bin) %016d\n" $(dectobin $LSB)
+#      printf "getREHSC() LSB (hex) %04X\n" $LSB
+      # extract high speed counter MSB (25 ns step)  
+      dmask=$(bintodec "0000000011111111")
+      MSB=$((($dw & dmask) << 8))
+#      printf "getREHSC() MSB (bin) %016d\n" $(dectobin $MSB)
+#      echo "getREHSC() MSB (hex)" $(dectohex $MSB)
+      hsc=$(($MSB + $LSB))
+      #printf "getREHSC() hsc (hex) %04X\n" $hsc
+#      printf "getREHSC() hsc (bin) %016d\n" $(dectobin $hsc)
+      printf "%d\n" $hsc
+  fi
+}
+
+getAddress(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getAddress <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask bw dw an
+
+      #echo "getAddress() input word (hex) " $1
+      bw=$(hextobin $1)
+      #printf "getAddress() input word (bin) %016d\n" $bw
+      dw=$(hextodec $1)
+      #printf "getAddress() input word (dec) %d\n" $dw
+      # extract anode address
+      dmask=$(bintodec "1111100000000000")
+      an=$((($dw & dmask) >> 11))
+      an=$((31 - $an))
+      #printf "getAddress() an (bin) %05d\n" $(dectobin $an)
+#      printf "getAddress() an (hex) %04X\n" $an
+      printf "%d\n" $an
+  fi
+}
+
+#gives multeplicity
+getMul(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getMul <hexword>"
+    return $E_BADARGS
+  else 
+      unset dmask bw dw ml
+      #echo "getMul() input word (hex) " $1
+      bw=$(hextobin $1)
+      #printf "getMul() input word (bin) %016d\n" $bw
+      dw=$(hextodec $1)
+      #printf "getMul() input word (dec) %d\n" $dw
+      # extract high speed counter LSB (25 ns step)
+      dmask=$(bintodec "0000011111000000")
+      ml=$((($dw & dmask) >> 6))
+      #printf "getMul() ml (bin) %016d\n" $(dectobin $ml)
+      #printf "getMul() ml (hex) %04X\n" $ml
+      printf "%d\n" $ml
+  fi
+}
+
+getREHSC(){
+  ARG=1
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: getREHSC <hexword>"
+    return $E_BADARGS
+  else 
+    #echo "getREHSC() input word (hex) "$1
+    echo $(hextodec $1)
+  fi
+}
+
+
+decodeRealEvt(){
+  ARG=2
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeRealEvt <hexword1> <hexword2>"
+    return $E_BADARGS
+  else 
+    unset tmp mrk
+    #echo "decodeRealEvt() decoding ELENA real event made by words $1 $2"
+    # confirm that this is a real event
+    tmp=$(getRealEvtMark $2); mrk=${tmp:11}
+    if [[ "$mrk" -eq  "10101" ]]
+    then
+      #echo "decodeRealEvt() OK this a good data event!"
+#      echo "high speed counter " $(getREHSCOld $1)
+#      echo "high speed counter " $(getREHSC $1)
+#      getREHSCOld $1
+      #printf "time\taddress\tmul\n"
+      printf "%d\t%d\t%d\n" $(getREHSC $1) $(getAddress $2) $(getMul $2)
+#     extract       
+    else
+      echo "decodeRealEvt() warning! This is not a correct dat event"
+    fi
+  fi
+}
+
+getSecondWord(){
+  ARG=2
+  if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+  then
+    echo "usage: decodeRealEvt <event part1(hex)> <eventpart2(hex)>"
+    return $E_BADARGS
+  else 
+    unset p2x p2d ef efd w2d w2x
+    p2x=$1
+    #echo "getSecondWord() event Part2 (hex)" $p2x
+    p2d=$(hextodec $1)
+    #echo "getSecondWord() event Part2 (dec)" $p2d
+    ef=$2
+    #echo "getSecondWord() event flag (hex)" $ef
+    efd=$(hextodec $2)
+    #echo "getSecondWord() event flag (dec)" $efd
+    w2d=$(( ($p2d << 1) + $efd ))
+    #echo "getSecondWord() tot second word (dec)" $w2d
+    #w2x=$(dectohex $w2d)
+    #echo "getSecondWord() tot second word (hex)" $w2x
+    printf "%04X\n" $w2d
+    
+#    printf "%04X\n" $(dectohex $(( ( ($(hextodec $1) << 1) + $(hextodec $2)) )))
+  fi
+}
+
+
+decodeELNevtX(){
+ARG=2
+if [ $# -ne "$ARG" ] # check on the number of parameters passed to the function
+then
+  echo "usage: decodeELNevt <hexword1> <hexword2>"
+  return $E_BADARGS
+else
+  evtflag=$(bintodec $(getEvtFlag $2))
+  case "$evtflag" in
+    0)
+      decodeTimeMarkevt $1 $2
+    ;;
+    1) 
+      decodeRealEvt $1 $2
+    ;;
+    *)
+        echo " illegal event tflag: $evtflag"
+	return $E_BADARGS;
+    ;;
+  esac
+
+fi
+}
+

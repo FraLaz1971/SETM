@@ -1,0 +1,65 @@
+#!/bin/bash
+if [ "$#" -ne 1 ]; 
+then
+    echo "usage $0 <filename>"
+else
+	EGSE_HOSTNAME="127.0.0.1"
+	EGSE_HOSTNAME1="colombo.iaps.inaf.it"
+	EGSE_HOSTNAME2="nibbio.iaps.inaf.it"
+	EGSE_TCPINPORT1="9190"
+	EGSE_TCPINPORT2="9191"
+	EGSE_TCPOUTSCIPORT="15590"	
+	EGSE_TCPOUTHKPORT="15591"	
+	EGSE_TCPOUTALLPORT="15592"	
+	EGSE_TCPINPORT=$EGSE_TCPINPORT1
+	DECOMPRESS="tar -xvfz "
+	filename="$1"
+	filedir=$(dirname $filename )
+	onlyfname=$(basename $filename )
+	extension="${onlyfname##*.}"
+	ufilename="${onlyfname%.*}.RawSourceBinary"
+	ncwaittm=5
+	slptm=6
+#	sendcmd="ncat -w 30 -d 1 -v"
+	sendcmd="ncat --version"
+	STARTDIR=$PWD
+	#check connections
+	#check beam.smp process
+	ps -Alf | grep beam.smp
+	#check listening socket
+	sudo netstat -ntpl | grep $EGSE_TCPINPORT1; sudo netstat -ntpl | grep $EGSE_TCPINPORT1
+	# enter file dir
+	echo "sendrawtoegse_IAPS: now in dir $PWD"
+	echo "sendrawtoegse_IAPS: executing cd $filedir"
+	cd $filedir
+	echo "sendrawtoegse_IAPS: now in dir $PWD"
+	# decompress
+        echo "sendrawtoegse_IAPS: executing $DECOMPRESS" $onlyfname
+        tar xvfz $onlyfname
+
+        # send to local/esoc egse tcp port
+	echo "sendrawtoegse_IAPS: extension = $extension"; echo "ufilename = $ufilename"; ls -lh $ufilename
+	echo "sendrawtoegse_IAPS: sending $ufilename data to $EGSE_HOSTNAME:$EGSE_TCPINPORT" 
+	echo "sendrawtoegse_IAPS: executing $sendcmd $EGSE_HOSTNAME $EGSE_TCPINPORT '<' $ufilename"
+	#pkill ncat
+	bash -c "$sendcmd $EGSE_HOSTNAME $EGSE_TCPINPORT < $ufilename" 
+
+	# do NOT send to a second computer 
+
+        echo "sendrawtoegse_IAPS: $(date) copying processed file in the EDDS/processed dir"
+        echo "sendrawtoegse_IAPS: executing cp $ufilename ~/EDDS/processed/"
+        cp $ufilename ~/EDDS/processed/
+
+	echo "sendrawtoegse_IAPS: sendcmd $(date) removing uncompressed file"
+	echo "sendrawtoegse_IAPS: executing rm $ufilename"
+	rm -v $ufilename
+
+	echo "sendrawtoegse_IAPS: sendcmd $(date) removing compressed file"
+	echo "sendrawtoegse_IAPS: executing rm $onlyfname"
+	rm -v $onlyfname
+
+	echo "sendrawtoegse_IAPS: sendcmd $(date) returning to start dir"
+	echo executing cd $STARTDIR
+	echo "sendrawtoegse_IAPS: sendcmd $(date) finished"
+  	exit 0
+fi

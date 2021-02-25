@@ -1,0 +1,13 @@
+NAME,UNIT,RAW_LO,RAW_HI,a,b,c,d,EXPRESSION,DESCRIPTION
+SCU_CUR,A,0,65535,0,0,0.0000915,0.0022,y=cx+d,SCU current consumption
+ELE_CUR,A,0,600,0,0,0.00000167,0,y=cx,ELENA current consumption
+ELE_CUR,A,601,3170,0,0,0.0000815,-0.051,y=cx+d,ELENA current consumption
+ELE_CUR,A,3171,3500,0,0,0.0011,0.0016,y=c^(dx),ELENA current consumption
+ELE_CUR,A,3501,4095,0,-0.00000036,0.003,-5.64,y=bx^2+cx+d,ELENA current consumption
+ELE_CUR,A,4096,65535,0,0,0.00012,0.0094,y=cx+d,ELENA current consumption
+STR_CUR,A,0,180,0,0,0.00072,-0.00066,y=cx+d,STROFIO current consumption
+STR_CUR,A,181,800,0,0,0.0000484,0.12,y=cx+d,STROFIO current consumption
+STR_CUR,A,801,65535,0,0,0.00072,-0.19,y=cx+d,STROFIO current consumption
+PCM_CUR,A,0,300,0,0,0.0003,0,y=cx,PICAM current consumption
+PCM_CUR,A,301,640,0,0,0.00004,0.0818,y=cx+d,PICAM current consumption
+PCM_CUR,A,641,65535,0,0,0.0003,-0.0459,y=cx+d,PICAM current consumption

@@ -1,0 +1,7 @@
+2019-08-29T09:56:26.417963924|squirrel|main|INFO|iteration 1 dds_packet_start = 0 infile = indata/2019-07-22_tm.dds
+2019-08-29T09:56:26.424007897|squirrel|main|INFO|1) current_packet_length = 00000012
+2019-08-29T09:56:26.427341055|squirrel|main|INFO|current packet length = 18
+2019-08-29T09:56:26.429481752|squirrel|main|INFO|bbe -s -b 18:18 indata/2019-07-22_tm.dds
+2019-08-29T09:56:26.441107404|squirrel|bintodec|WARN|argument 00000000000000000000000000000001 has leading zeros 0000000000000000000000000000000 if you want to enter an octal number use octodec instead
+2019-08-29T09:56:26.445617192|squirrel|bintodec|WARN|argument 0000000000000000 has leading zeros 0000000000000000 if you want to enter an octal number use octodec instead
+2019-08-29T09:56:26.448268744|squirrel|main|INFO|dds_packet_start = 36

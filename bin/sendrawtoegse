@@ -1,0 +1,79 @@
+#!/bin/bash
+if [ "$#" -ne 1 ]; 
+then
+    echo "usage $0 <filename>"
+else
+	EGSE_HOSTNAME="127.0.0.1" #localhost
+	EGSE_HOSTNAME1="colombo.iaps.inaf.it"
+	EGSE_HOSTNAME2="nibbio.iaps.inaf.it"
+	EGSE_TCPINPORT1="20190"
+	EGSE_TCPINPORT2="20191"
+	EGSE_TCPOUTSCIPORT="6590"	
+	EGSE_TCPOUTHKPORT="6591"	
+	EGSE_TCPOUTALLPORT="6592"	
+	EGSE_TCPINPORT=$EGSE_TCPINPORT1
+	DECOMPRESS="tar -xvfz "
+	filename="$1"
+	filedir=$(dirname $filename )
+	onlyfname=$(basename $filename )
+	extension="${onlyfname##*.}"
+#	ufilename="${onlyfname%.*}.RawSourceBinary"
+	ufilename="$filename"
+	ncwaittm=5
+	slptm=6
+#	sendcmd="ncat -w 30 -d 1 -v"
+	sendcmd="nc -w 10 -v"
+#	STARTDIR=$PWD
+	#check connections
+	#check beam.smp process
+#	ps -Alf | grep beam.smp
+	#check listening socket
+#	sudo netstat -ntpl | grep $EGSE_TCPINPORT1; sudo netstat -ntpl | grep $EGSE_TCPINPORT1
+	# enter file dir
+#	echo "now in dir $PWD"
+#	echo "executing cd $filedir"
+#	cd $filedir
+#	echo "now in dir $PWD"
+	# decompress
+#        echo "executing $DECOMPRESS" $onlyfname
+#        tar xvfz $onlyfname
+
+#	echo "sendcmd $(date) copying uncompressed file to QL and pipeline location"
+#	echo executing cp $ufilename to ~/Necp_pipeline/
+
+        # send to local/esoc egse tcp port
+	echo "extension = $extension"; echo "ufilename = $ufilename"; ls -lh $ufilename
+	echo "sending $ufilename data to $EGSE_HOSTNAME:$EGSE_TCPINPORT" 
+	echo "executing $sendcmd $EGSE_HOSTNAME $EGSE_TCPINPORT '<' $ufilename" 
+	#pkill ncat
+	#send data on egse running on localhost 127.0.0.1
+	bash -c "$sendcmd $EGSE_HOSTNAME1 $EGSE_TCPINPORT < $ufilename" 
+	#sleep $slptm;	pkill ncat
+
+	#sendcmd="netcat -w 10 "
+	# send to second computer (enabled) 2018/12/14 colombo.iaps.inaf.it
+
+
+#	echo "sending $ufilename data to $EGSE_HOSTNAME1:$EGSE_TCPOUTPORT1" 
+#	echo executing $sendcmd $EGSE_HOSTNAME $EGSE_TCPOUTALLPORT '<' $ufilename 
+#	bash -c "$sendcmd $EGSE_HOSTNAME1 $EGSE_TCPOUTALLPORT < $ufilename" 
+#	sleep $slptm;	pkill netcat
+
+#	echo "sending $ufilename data to $EGSE_HOSTNAME2:$EGSE_TCPINPORT" 
+#	echo executing $sendcmd $EGSE_HOSTNAME $EGSE_TCPOUTHKPORT '<' $ufilename 
+#	bash -c "$sendcmd $EGSE_HOSTNAME $EGSE_TCPOUTHKPORT < $ufilename" 
+#	sleep $slptm;	pkill netcat
+
+#	echo "sendcmd $(date) removing uncompressed file"
+#	echo executing rm $ufilename
+#	rm -v $ufilename
+
+#	echo "sendcmd $(date) removing compressed file"
+#	echo executing rm $onlyfname
+#	rm -v $onlyfname
+
+#	echo "sendcmd $(date) returning to start dir"
+#	echo executing cd $STARTDIR
+	echo "sendcmd $(date) finished"
+  	exit 0
+fi

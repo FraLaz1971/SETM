@@ -1,0 +1,15 @@
+2019-08-20T13:51:04.870883775|squirrel|main|INFO|header version and identification section bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+2019-08-20T13:51:04.875960446|squirrel|main|INFO|header sequence control section bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+2019-08-20T13:51:04.880082073|squirrel|main|INFO|header packet length bitarray = 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1 
+2019-08-20T13:51:04.887532358|squirrel|bintodec|WARN|argument 0000000000001011 has leading zeros 000000000000 if you want to enter an octal number use octodec instead
+2019-08-20T13:51:04.891130286|squirrel|main|INFO|value of the packet length field length bitarray = 11 
+2019-08-20T13:51:04.940407698|squirrel|check_ccsds_pkt_compliance|INFO|header dimension is 48 bit(s) or 6  BYTES 
+2019-08-20T13:51:04.943606668|squirrel|check_ccsds_pkt_compliance|INFO|the header length is 6 BYTES [OK]
+2019-08-20T13:51:04.946819918|squirrel|check_ccsds_pkt_compliance|INFO|the data field size is 96 bit(s) or 12 BYTES 
+2019-08-20T13:51:04.948486634|squirrel|check_ccsds_pkt_compliance|INFO|this packet has a data field long 12 BYTES
+2019-08-20T13:51:04.953818146|squirrel|check_ccsds_pkt_compliance|INFO|1) pktlenval = 98315 dfsizebytes = 12
+2019-08-20T13:51:04.955354945|squirrel|check_ccsds_pkt_compliance|INFO|this packet has a data field long 98315 BYTES
+2019-08-20T13:51:04.963855250|squirrel|check_ccsds_pkt_compliance|INFO|2) pktlenval = 98315 dfsizebytes = 12
+2019-08-20T13:51:04.965419064|squirrel|check_ccsds_pkt_compliance|ERR|this packet has a data field with length different (from hd_pktlen + 1) !
+2019-08-20T13:51:04.966962571|squirrel|check_ccsds_pkt_compliance|WARN|the inconsitency should be handled !
+2019-08-20T13:51:04.971842118|squirrel|check_ccsds_pkt_compliance|INFO|a dfh shall NOT be present

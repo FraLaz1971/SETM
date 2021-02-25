@@ -1,0 +1,31 @@
+\begin{theindex}
+
+  \item {B\+B\+E\+\_\+\+I\+F\+\_\+H}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+  \item {bbe\+\_\+if.\+c}
+    \subitem {B\+B\+E\+\_\+\+I\+F\+\_\+H}, \hyperpage{4}
+    \subitem {get\+\_\+block\+\_\+hexstr}, \hyperpage{4}
+    \subitem {get\+\_\+ccsds\+\_\+pktlen}, \hyperpage{4}
+    \subitem {get\+\_\+dds\+\_\+hd\+\_\+hex}, \hyperpage{4}
+    \subitem {get\+\_\+dds\+\_\+hd\+\_\+pktlen}, \hyperpage{4}
+    \subitem {get\+\_\+packet\+\_\+hex}, \hyperpage{4}
+
+  \indexspace
+
+  \item {get\+\_\+block\+\_\+hexstr}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+  \item {get\+\_\+ccsds\+\_\+pktlen}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+  \item {get\+\_\+dds\+\_\+hd\+\_\+hex}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+  \item {get\+\_\+dds\+\_\+hd\+\_\+pktlen}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+  \item {get\+\_\+packet\+\_\+hex}
+    \subitem {bbe\+\_\+if.\+c}, \hyperpage{4}
+
+  \indexspace
+
+  \item {src/bbe\+\_\+if.\+c}, \hyperpage{3}
+  \item {src/cat\+\_\+dds\+\_\+to\+\_\+pus.\+c}, \hyperpage{4}
+
+\end{theindex}
