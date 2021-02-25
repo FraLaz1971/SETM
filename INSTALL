@@ -1,0 +1,13 @@
+#####################################
+### BC SRN TM handling bash lib
+### 2019 francesco.lazzarotto@inaf.it
+#####################################
+
+# to install, type
+make install
+
+to compile: 
+./configure 
+make 
+to install: 
+make install
