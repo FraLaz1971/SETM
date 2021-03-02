@@ -1,2 +1,3 @@
-#!/bin/bash
-echo "ciccio" >&2 
+#!/usr/bin/env bash
+#prints a string to standard error
+echo "ciccio" >&2
