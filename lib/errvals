@@ -120,10 +120,10 @@ error_what(){
       echo "maximum listed value"
     ;;
     ## mendel cooper abs guide example exit codes
-    $E_BADARGS)          
+    $E_BADARGS)
       echo "Wrong number of arguments"
     ;;
-    
+
     "$E_ARGSLIMITS")
       echo "an argument is out of allowed limits"
     ;;

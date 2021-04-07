@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# simple cat header
+# script to cat fits primary header
+# error values
+EX_NOINPUT=66
+E_BADARGS=55
+# global variables
+declare -i NBLOCKS
+# functions get_nblocks START
+function get_nblocks() {
+	echo "$0:${FUNCNAME[0]}() $1  START">&2
+	declare -i insize
+	declare -i count
+	NBLOCKS=0;count=0;
+	if [[ $# != 1 ]]
+	then
+		return $E_BADARGS
+	else
+		insize="$1"
+		while [[ $insize*80 -gt 2880*$count ]]
+		do
+			count=$(($count+1))
+		done
+		NBLOCKS=$count
+		echo "$0:${FUNCNAME[0]}() NBLOCKS = $NBLOCKS  ">&2
+		echo "$0:${FUNCNAME[0]}() count = $count  ">&2
+		return 0
+	fi
+}
+
+# fun get_nblocks END
+# MAIN starts here
+function main()
+{
+line="";KEY="";VAL="";n=0
+if [[ $# != 1 ]]
+then
+	echo "usage: $0 <fitsfile>">&2
+	exit $E_BADARGS
+else
+	if test -f "$1"
+	then
+		while :
+		do
+			line=$(head -c $((80*$n)) $1 | tail -c 80)
+			KEY=$(printf "%s" $line)
+			if [[ $KEY != "END"  ]]
+			then
+				printf "%s" "$line"
+			else
+				printf "%-80s" "END"
+				echo "$0:${FUNCNAME[0]}() $1 primary header contained $n lines ">&2
+				get_nblocks $n
+				echo "$0:${FUNCNAME[0]}() $1 primary header is formed by $NBLOCKS blocks ">&2
+				echo "$0:${FUNCNAME[0]}() $1 header of $NBLOCKS blocks are $(($NBLOCKS*2880)) BYTES">&2
+				echo "$0:${FUNCNAME[0]}() $1 $(($NBLOCKS*2880 - $n*80)) BYTES to be added">&2
+				printf "%400c" " "
+				exit 0
+			fi
+			n=$(($n+1))
+		done
+	else
+		echo "$0: error, $1 is not a regular file ">&2
+		exit $EX_NOINPUT
+	fi
+	exit 0;
+fi
+}
+
+# main called
+main "$@"

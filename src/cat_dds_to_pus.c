@@ -1,24 +1,25 @@
 /** ********************************************
- @file cat_dds_to_pus.c                       
- @brief convert dds file to ccsds pus files   
- from an original program by Jouni Ryno       
- Jouni.Ryno@fmi.fi                            
- @author Francesco Lazzarotto francesco.lazzarotto@inaf.it         
- @copyright 2019 GPL 2 free software license  
+ @file cat_dds_to_pus.c
+ @brief convert dds file to ccsds pus file
+ from an original program by Jouni Ryno
+ Jouni.Ryno@fmi.fi
+ @author Francesco Lazzarotto francesco.lazzarotto@inaf.it
+ @copyright 2019 GPL 3 free software license
 ***********************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <sys_types.h>
+#include <sys_stat.h>
 #include <fcntl.h>
 #include <endian.h>
-
-main(int argc, char **argv)
+#define _DEFAULT_SOURCE
+#define _POSIX_C_SOURCE
+int main(int argc, char **argv)
 {
-  int fd;
-/**  @var dds_head[18] 
-/**  @brief bytes array saving dds header */
+  int fd; /* pointer to input file */
+	/**  @var dds_head[18] 
+	/**  @brief bytes array saving dds header */
   char dds_head[18]; /**< dds_head Detailed description after the member */
   char dds_packet[4096]; /**< dds_packet Detailed description after the member */
   int *len;
@@ -35,6 +36,8 @@ main(int argc, char **argv)
         write(1, dds_packet, be32toh(*len));
       }
     } while (res > 0);
+  } else {
   }
+  return 0;
 }
 
