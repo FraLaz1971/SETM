@@ -1,7 +1,8 @@
 @brief process BepiColombo TM data
 -------------------------------------------
-this directory contains bash libraries and scripts
-and other utility files to process BepiColombo TM data.
+bash libraries and scripts and other utility files 
+to process TM data starting from BepiColombo space
+mission examples.
 The TM data follow the CCSDS international standard and
 ESA / ECSS PUS european standard.
 binary data are handled and converted to HEX
@@ -41,9 +42,10 @@ xxd -i ---> create a c language array containing the content of a binary file
 od ---> create octal/decimal/hex dump of files
 -------------------------------------------
 
-#--------------------------------------------------------------------------------------------------
+------------------------------------------
+#bbe based scripts
 -------------------------------------------
-bin/script1.bbe ---> first bbe based script, convert dds files to ccsds files
+bin/script1.bbe --->  convert dds files to ccsds files
 -------------------------------------------
 # contained files
 ar1.dat
@@ -127,9 +129,7 @@ test_tm_dfh_1.sh
 --------------------------------------------------------------------------
 23 September 2019
 --------------------------------------------------------------------------
-
 bin/script3_bbe.sh
-
 this script handle all packets in a dds binary tm file and does something
 --------------------------------------------------------------------------
 ## GDDS binary header fields (bit arrays)
@@ -142,74 +142,15 @@ declare -a dds_hd_slesrvid  # SLE Service ID (1 octet)
 declare -a dds_hd_tmqf      # Time Quality Flag (1 octet)
 
 --------------------------------------------------------------------------
-#!/bin/bash
-## this program converts packet files in the dds binary format to the ccsds raw source binary format 
-# (without any additional header). it takes as input the input dds file and the number of packets to process
-# if there are no packets to process it stops
-# this is a prototype for packet handling scripts
-
-. lib/pl_tm_lib
-. lib/bbe_lib
-
-DEBUG=0 # when in debug doesn't remove temp files
-if [[ $# != 2 ]]
-then
-  debug "usage: $(basename $0) <infile.dds> <npackets>"
-  exit $E_BADARGS
-else
-  infile="$1"
-  t="$2"
-  dds_packet_start=0; ccsds_packet_start=18
-  for i in $(eval echo {1..$t} )
-  do
-      current_packet_length=0; subs=FFFF
-      [[ $DEBUG == 1 ]] && debug "iteration $i dds_packet_start = $dds_packet_start infile = $infile"
-      current_packet_length=$(get_dds_hd_pktlen "$infile" $dds_packet_start)
-      [[ $DEBUG == 1 ]] && debug "1) current_packet_length = $current_packet_length"
-      #current_packet_length=$(bbe -s -b "8:4" "$1" | xxd -u | awk  'BEGIN{FS=":"} {print $2}' | awk  'BEGIN{FS="."} {print $1}' | sed -e "s/ //g")
-      dcurrent_packet_length=$( hextodec $current_packet_length )
-      #hextodec $current_packet_length
-      [[ $DEBUG == 1 ]] && debug "current packet length = $dcurrent_packet_length"
-      str1=$(echo bbe -s -b $ccsds_packet_start:$dcurrent_packet_length $infile ); [[ $DEBUG == 1 ]] && debug "$str1"
-      ## following instruction dumps ccsds packet on a hex string
-      hexstr=$(bbe -s -b $ccsds_packet_start:$dcurrent_packet_length $infile | bin/ccsdstohex -)
-      # set the SSC
-      # set the setSSC
-      DEBUG=0
-      [[ $DEBUG == 1 ]] && debug "hexstr = $hexstr"
-      subs=${hexstr:4:4}; [[ $DEBUG == 1 ]] && debug "setSSH_hex $subs";
-      [[ $DEBUG == 1 ]] && debug "bSSC = $( dectobin $(( $(hextodec $subs) & $(hextodec "3FFF") )) )"
-      setSSC_hex $subs
-      DEBUG=0
-      ## now set the secondary header time in the packet structure
-      subs=${hexstr:20:8}; [[ $DEBUG == 1 ]] && debug "set_dfh_scet_coarse_hex $subs";
-      set_dfh_scet_coarse_hex $subs
-      subs=${hexstr:28:4}; [[ $DEBUG == 1 ]] && debug "set_dfh_scet_fine_hex $subs";
-      set_dfh_scet_fine_hex $subs ;
-            ## print scet seconds dec
-      [[ $DEBUG == 1 ]] && debug "get_packet_time_secs = $(get_packet_time_secs)"
-      ## print scet subseconds dec
-      [[ $DEBUG == 1 ]] && debug "get_packet_time_subsecs = $(get_packet_time_subsecs)"
-      ###
-      echo -e "$(get_packet_time_secs) $SSC"
-      ###
-      dds_packet_start=$(($dcurrent_packet_length + $ccsds_packet_start)); #update the offset
-      #      dds_packet_start=$(( $dds_packet_end +  ))
-      [[ $DEBUG == 1 ]] && debug "dds_packet_start = $dds_packet_start"
-      ccsds_packet_start=$(($dds_packet_start+18))
-  done
-fi
---------------------------------------------------------------------------------
 csv2xml.sh ---> converts csv (tables) files in the corresponding xml table
---------------------------------------------------------------------------------
+--------------------------------------------------------------------------
 #example usage: bin/csv2xml.sh indata/csv/test_utils_input_01.csv
---------------------------------------------------------------------------------
+--------------------------------------------------------------------------
 bin/csvdatanames2pds4label.sh ---> create the pds4 label starting from csvdatanames2pds4label
----
+--------------------------------------------------------------------------
 # get_dds_hd_pktlen gives the length in bytes of the whole ccsds packet
---
-# dds2hexstrings.sh ---> takes as input dds binary tm file and gives ccsds hexstrings as ouptut (ascii hex strings on the stdout
-each line is a record corresponding to a single ccsds packet)
+# dds2hexstrings.sh ---> takes as input dds binary tm file and gives ccsds hexstrings as ouptut (ascii hex strings on the stdout. Each line is a record corresponding to a single ccsds packet)
+--------------------------------------------------------------------------
 
 ############################
 # 25/10/2019              ##
