@@ -1,4 +1,4 @@
-@brief process BepiColombo TM data
+Process TM data from ESA/NASA/ASI Space Missions
 -------------------------------------------
 bash libraries and scripts and other utility files 
 to process TM data starting from BepiColombo space
