@@ -1,4 +1,6 @@
-@brief this directory contains bash libraries and scripts
+@brief process BepiColombo TM data
+-------------------------------------------
+this directory contains bash libraries and scripts
 and other utility files to process BepiColombo TM data.
 The TM data follow the CCSDS international standard and
 ESA / ECSS PUS european standard.
@@ -24,16 +26,16 @@ and saves on a conf file
 bin/test_tm_1pkt.sh  ---->
 #the following example shows how to create an output ccsds tm file
 #the program can be used from the terminal command line
-#example usage
+# example usage #
 bin/test_tm_1pkt.sh  > out2.ccsds; xxd -u out2.ccsds | awk 'BEGIN{FS=":"}{print $2}' | awk '{print $1 $2 $3 $4 $5 $6 $7 $8}' | awk 'BEGIN{FS="."}{print $1}'
 -----------------------------------------------
-###################################################
+############
 remember: 
 xxd -r ---> reverses ascii hexdumps to binary files
 xxd -i ---> create a c language array containing the content of a binary file
 od ---> create octal/decimal/hex dump of files
-###################################################
----------------------------------------------------------------------------------------------------
+############
+--------------------------------------------------------------------------------------------------
 bin/script1.bbe ---> first bbe based script, convert dds files to ccsds files
 
 ar1.dat
