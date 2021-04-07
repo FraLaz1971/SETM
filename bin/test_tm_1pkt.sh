@@ -1,9 +1,11 @@
 #!/bin/bash
-# tests srn_tm_lib library
+# @author Francesco Lazzarotto
+# @email francesco.lazzarotto@inaf.it
+# @brief tests srn_tm_lib library
 . lib/srn_tm_lib
 SSC=20;
 unset df; unset sdf
-hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1) #set as a packet with the DFH + 2 bytes 
+hd_pktlen=(0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 1) #set as a packet with the DFH + 2 bytes
 debug "header version and identification section bitarray = ${hd_vid[*]} "
 debug "header sequence control section bitarray = ${hd_seq[*]} "
 debug "header packet length bitarray = ${hd_pktlen[*]} "
@@ -32,4 +34,3 @@ dump_ccsds_packet
 # set_ccsds_packet
 # check_ccsds_pkt_compliance
 # dump_ccsds_packet
-

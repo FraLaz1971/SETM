@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys_types.h>
-#include <sys_stat.h>
+#include "sys_types.h"
+#include "sys_stat.h"
 #include <fcntl.h>
 #include <endian.h>
 #define _DEFAULT_SOURCE
