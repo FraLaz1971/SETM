@@ -24,21 +24,23 @@ the following files are listed and described
 autoextract_metadata.sh ----> extract table metadata from a csv table file 
 and saves on a conf file
 ----------------------------------------------------------------------------------------------
-bin/test_tm_1pkt.sh  ---->
+bin/test_tm_1pkt.sh  ----> create an output ccsds tm file
 -------------------------------------------
-#the following example shows how to create an output ccsds tm file
-#the program can be used from the terminal command line
+
+the following example shows how to create an output ccsds tm file
+the program can be used from the terminal command line
+
 -------------------------------------------
 # example usage #
 -------------------------------------------
 bin/test_tm_1pkt.sh  > out2.ccsds; xxd -u out2.ccsds | awk 'BEGIN{FS=":"}{print $2}' | awk '{print $1 $2 $3 $4 $5 $6 $7 $8}' | awk 'BEGIN{FS="."}{print $1}'
-#-----------------------------------------------
+-----------------------------------------------
 #remember:
 -------------------------------------------
-
--------------------------------------------
 xxd -r ---> reverses ascii hexdumps to binary files
+-------------------------------------------
 xxd -i ---> create a c language array containing the content of a binary file
+-------------------------------------------
 od ---> create octal/decimal/hex dump of files
 -------------------------------------------
 
