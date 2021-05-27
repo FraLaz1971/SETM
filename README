@@ -6,8 +6,12 @@
 #ESA / ECSS PUS Telemetry and Telecommands 
 #european standard data are handled
 */
+# last update
+- 2021-05-27
+## run following example
+bin/pktr -a data/miscellanea/apids_serena.list -i data/indata/2019-07-22_2pkts_tm.ccsds -e "packetnumber=$packet apid=%apid sequence=%sequence lenght=%length\n" -o out2.dat data/indata/2019-07-22_2pkts_tm.ccsds
 #-------------------------------------------
-#last update date: 2021-04-16
+# update date: 2021-04-16
 #-------------------------------------------
 #-------------------------------------------
 # update date: 2021-02-25
