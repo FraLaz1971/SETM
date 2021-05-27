@@ -33,7 +33,7 @@ DEBUG=0 # when in debug prints more log files
 if [[ $# != 1 ]]
 then
   debug "usage: $(basename $0) <infile.csv> "
-  exit $E_BADARGS
+  exit $EX_BADARGS
 else
   debug "extracts metadata from csv tables and saves it"
   infile="$1"

@@ -29,7 +29,7 @@ function comment(val){
 }
 
 BEGIN   { 
-  FS=","; DEBUG=0
+  FS=","; DEBUG=1
   print "cvsrow2xmlrec: converting csv row in xml record" > "/dev/stderr"
   print "cvsrow2xmlrec: writing result on stdout" > "/dev/stderr"
   # read metadata from conf file
@@ -48,20 +48,18 @@ BEGIN   {
 if (DEBUG==1) print  "cvsrow2xmlrec: this line is starting with a normal char and will be treated as a data row" > "/dev/stderr"
   DEBUG=1
   if (DEBUG==1)  printf "cvsrow2xmlrec: N_FIELDS, %d \n", NF > "/dev/stderr"
-  DEBUG=0
+  DEBUG=1
   if (DEBUG==1)  printf "cvsrow2xmlrec: this row has NF = %d \n", NF > "/dev/stderr"
   i = 1
   openTag("RECORD");
    while (i <= NF) {
 #     if (i=1) tv=ft[$i]
      if (DEBUG==1) printf "%s-->r[%d]=%s ",ft[i], i, $i > "/dev/stderr"
-       openTag($i);printf("N");closeTag($i)
+       openTag(ft[i]);printf("N", $i);closeTag(ft[i])
     i++
    }
-  print " \n"
-  closeTag("RECORD")
+  closeTag("RECORD");print "\n"
   if (DEBUG==1) print "cvsrow2xmlrec:", $1, "\t", $2, "\t", $3 > "/dev/stderr"
-}	
+}
 
-END     { print " - DONE -" > "/dev/stderr" } 
-          
+END     { print " - DONE -" > "/dev/stderr" }

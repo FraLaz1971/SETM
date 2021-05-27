@@ -47,9 +47,10 @@ EX_NOPERM=77	#/** permission denied *#/*
 EX_CONFIG=78	#/** configuration error *#/*
 EX__MAX=78	#/* maximum listed value */
 ## mendel cooper abs guide example exit codes
-E_BADARGS=85          # Wrong number of arguments
-E_ARGSLIMITS=86       # an argument is out of allowed limits
-E_UNSUPPORTED=87      # unsupported system
+EX_BADARGS=85          # Wrong number of arguments
+EX_ARGSLIMITS=86       # an argument is out of allowed limits
+EX_UNSUPPORTED=87      # unsupported system
+EX_DENIED=126          # permission denied
 
 
 error_what(){
@@ -66,72 +67,72 @@ error_what(){
     case "$1"
     in
     "$EX_OK")
-      echo "no errors: successful termination"
+      echo "no errors: successful termination" >&2
     ;;
     "$EX_SYNERR")
-      echo "syntax error"
+      echo "syntax error" >&2
     ;;
     "$EX_USAGE")	
-      echo "command line usage error"
+      echo "command line usage error" >&2
     ;;
     "$EX_DATAERR")
-      echo "data format error"
+      echo "data format error" >&2
     ;;
     "$EX_NOINPUT")
-      echo "cannot open input"
+      echo "cannot open input" >&2
     ;;
     "$EX_NOUSER")
-      echo "addressee unknown"
+      echo "addressee unknown" >&2
     ;;
     "$EX_NOHOST")
-      echo "host name unknown"
+      echo "host name unknown" >&2
     ;;
     "$EX_UNAVAILABLE")
-      echo "service unavailable"
+      echo "service unavailable" >&2
     ;;
     $EX_SOFTWARE)	
-      echo "internal software error"
+      echo "internal software error" >&2
     ;;
     "$EX_OSERR")
-      echo "system error (e.g., can't fork)"
+      echo "system error (e.g., can't fork)" >&2
     ;;
     "$EX_OSFILE")
-      echo "critical OS file missing"
+      echo "critical OS file missing" >&2
     ;;
     "$EX_CANTCREAT")	
-      echo "can't create (user) output file"
+      echo "can't create (user) output file" >&2
     ;;
     "$EX_IOERR")
-      echo "input/output error"
+      echo "input/output error" >&2
     ;;
     "$EX_TEMPFAIL")	
-      echo "temp. failure; user is invited to retry"
+      echo "temp. failure; user is invited to retry" >&2
     ;;
     "$EX_PROTOCOL")	
-      echo "remote error in protocol"
+      echo "remote error in protocol" >&2
     ;;
     "$EX_NOPERM")	
-      echo "permission denied"
+      echo "permission denied" >&2
     ;;
     "$EX_CONFIG")
-      echo "configuration error"
+      echo "configuration error" >&2
     ;;
     "$EX__MAX")
-      echo "maximum listed value"
+      echo "maximum listed value" >&2
     ;;
     ## mendel cooper abs guide example exit codes
     $E_BADARGS)
-      echo "Wrong number of arguments"
+      echo "Wrong number of arguments" >&2
     ;;
 
     "$E_ARGSLIMITS")
-      echo "an argument is out of allowed limits"
+      echo "an argument is out of allowed limits" >&2
     ;;
     "$E_UNSUPPORTED")
-      echo "the system is unsupported"
+      echo "the system is unsupported" >&2
     ;;
     *)
-      echo "unprecised error"
+      echo "unprecised error" >&2
     ;;
     esac
   fi
